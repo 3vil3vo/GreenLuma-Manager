@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:GreenLuma_Manager"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:utilities="clr-namespace:GreenLuma_Manager.Utilities"
-    Title="GreenLuma Manager"
+    Title="{DynamicResource App.Title}"
     Width="1036"
     Height="708"
     MinWidth="1036"
@@ -1206,7 +1206,7 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0">
-                        <TextBlock Style="{StaticResource HeaderTxt}" Text="SEARCH STEAM" />
+                        <TextBlock Style="{StaticResource HeaderTxt}" Text="{DynamicResource Action.Search}" />
 
                         <Grid Margin="0,20,0,0" PreviewMouseDown="SearchGrid_PreviewMouseDown">
                             <Grid.ColumnDefinitions>
@@ -1243,7 +1243,7 @@
                                         Data="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
                                         Fill="{StaticResource DarkBg}"
                                         Stretch="Uniform" />
-                                    <TextBlock VerticalAlignment="Center" Text="SEARCH" />
+                                    <TextBlock VerticalAlignment="Center" Text="{DynamicResource Action.Search}" />
                                 </StackPanel>
                             </Button>
                         </Grid>
@@ -1278,7 +1278,7 @@
                         </Grid.RowDefinitions>
 
                         <Grid Grid.Row="0" Margin="0,0,0,16">
-                            <TextBlock Style="{StaticResource HeaderTxt}" Text="RESULTS" />
+                            <TextBlock Style="{StaticResource HeaderTxt}" Text="{DynamicResource Section.Results}" />
                             <Border
                                 Padding="12,6"
                                 HorizontalAlignment="Right"
@@ -1399,7 +1399,7 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0">
-                        <TextBlock Style="{StaticResource HeaderTxt}" Text="PROFILE" />
+                        <TextBlock Style="{StaticResource HeaderTxt}" Text="{DynamicResource Section.Profile}" />
 
                         <Grid Margin="0,20,0,0">
                             <Grid.ColumnDefinitions>
@@ -1544,7 +1544,7 @@
                         </Grid.RowDefinitions>
 
                         <Grid Grid.Row="0" Margin="0,0,0,16">
-                            <TextBlock Style="{StaticResource HeaderTxt}" Text="GAMES" />
+                            <TextBlock Style="{StaticResource HeaderTxt}" Text="{DynamicResource Section.Games}" />
                             <Border
                                 Padding="12,6"
                                 HorizontalAlignment="Right"
@@ -1744,7 +1744,7 @@
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     FontWeight="SemiBold"
-                                    Text="GENERATE APPLIST" />
+                                    Text="{DynamicResource Action.GenerateAppList}" />
                             </StackPanel>
                         </Button>
 
@@ -1763,7 +1763,7 @@
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     FontWeight="SemiBold"
-                                    Text="LAUNCH GREENLUMA" />
+                                    Text="{DynamicResource Action.LaunchGreenLuma}" />
                             </StackPanel>
                         </Button>
                     </StackPanel>

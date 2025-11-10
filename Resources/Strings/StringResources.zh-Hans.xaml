@@ -1,0 +1,33 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+	<!-- 核心 -->
+	<System:String x:Key="App.Title">GreenLuma 管理器</System:String>
+
+	<!-- 主要操作 -->
+	<System:String x:Key="Action.Search">搜索</System:String>
+	<System:String x:Key="Action.SearchPlaceholder">搜索游戏或 AppID…</System:String>
+	<System:String x:Key="Action.GenerateAppList">生成 AppList</System:String>
+	<System:String x:Key="Action.LaunchGreenLuma">启动 GreenLuma</System:String>
+	<System:String x:Key="Action.CreateProfile">创建档案</System:String>
+	<System:String x:Key="Action.Delete">删除</System:String>
+	<System:String x:Key="Action.Settings">设置</System:String>
+	<System:String x:Key="Action.Cancel">取消</System:String>
+	<System:String x:Key="Action.Save">保存</System:String>
+
+	<!-- 分区 -->
+	<System:String x:Key="Section.Results">结果</System:String>
+	<System:String x:Key="Section.Profile">档案</System:String>
+	<System:String x:Key="Section.Games">游戏</System:String>
+
+	<!-- 设置 -->
+	<System:String x:Key="Settings.Title">设置</System:String>
+	<System:String x:Key="Settings.Language">语言</System:String>
+	<System:String x:Key="Settings.Language.RestartHint">大多数字段会即时应用</System:String>
+
+	<!-- 语言 -->
+	<System:String x:Key="Lang.English">English</System:String>
+	<System:String x:Key="Lang.ChineseSimplified">简体中文</System:String>
+	<System:String x:Key="Lang.ChineseTraditional">繁體中文</System:String>
+	<System:String x:Key="Lang.Japanese">日本語</System:String>
+</ResourceDictionary>
+

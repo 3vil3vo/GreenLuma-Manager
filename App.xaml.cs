@@ -19,6 +19,21 @@ namespace GreenLuma_Manager
             base.OnStartup(e);
             try
             {
+                // Load localization before any windows show
+                try
+                {
+                    var cfg = ConfigService.Load();
+                    if (string.IsNullOrWhiteSpace(cfg.Language))
+                    {
+                        cfg.Language = LocalizationService.GetDefaultLanguage();
+                        ConfigService.Save(cfg);
+                    }
+                    LocalizationService.ApplyLanguage(cfg.Language);
+                }
+                catch
+                {
+                }
+
                 if (e.Args != null && e.Args.Length > 0)
                 {
                     foreach (var arg in e.Args)

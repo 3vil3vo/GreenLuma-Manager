@@ -1,0 +1,33 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+	<!-- Core app strings -->
+	<System:String x:Key="App.Title">GreenLuma Manager</System:String>
+
+	<!-- Main actions -->
+	<System:String x:Key="Action.Search">Search</System:String>
+	<System:String x:Key="Action.SearchPlaceholder">Search games or AppID…</System:String>
+	<System:String x:Key="Action.GenerateAppList">Generate AppList</System:String>
+	<System:String x:Key="Action.LaunchGreenLuma">Launch GreenLuma</System:String>
+	<System:String x:Key="Action.CreateProfile">Create Profile</System:String>
+	<System:String x:Key="Action.Delete">Delete</System:String>
+	<System:String x:Key="Action.Settings">Settings</System:String>
+	<System:String x:Key="Action.Cancel">Cancel</System:String>
+	<System:String x:Key="Action.Save">Save</System:String>
+
+	<!-- Sections -->
+	<System:String x:Key="Section.Results">Results</System:String>
+	<System:String x:Key="Section.Profile">Profile</System:String>
+	<System:String x:Key="Section.Games">Games</System:String>
+
+	<!-- Settings -->
+	<System:String x:Key="Settings.Title">Settings</System:String>
+	<System:String x:Key="Settings.Language">Language</System:String>
+	<System:String x:Key="Settings.Language.RestartHint">Language applies immediately to most texts</System:String>
+
+	<!-- Languages -->
+	<System:String x:Key="Lang.English">English</System:String>
+	<System:String x:Key="Lang.ChineseSimplified">简体中文</System:String>
+	<System:String x:Key="Lang.ChineseTraditional">繁體中文</System:String>
+	<System:String x:Key="Lang.Japanese">日本語</System:String>
+</ResourceDictionary>
+

@@ -16,6 +16,7 @@ namespace GreenLuma_Manager.Models
             CheckUpdate = true;
             ReplaceSteamAutostart = false;
             FirstRun = true;
+            Language = string.Empty;
         }
 
         [DataMember] public string SteamPath { get; set; }
@@ -35,5 +36,7 @@ namespace GreenLuma_Manager.Models
         [DataMember] public bool ReplaceSteamAutostart { get; set; }
 
         [DataMember] public bool FirstRun { get; set; }
+
+        [DataMember] public string Language { get; set; }
     }
 }

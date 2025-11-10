@@ -1,3 +1,82 @@
+name: Build and Publish
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore .\GreenLuma-Manager.csproj
+
+      - name: Publish (framework-dependent, single-file)
+        run: >
+          dotnet publish .\GreenLuma-Manager.csproj
+          -c Release
+          -r win-x64
+          --self-contained false
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o .\publish
+
+      - name: Publish (self-contained, single-file)
+        run: >
+          dotnet publish .\GreenLuma-Manager.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o .\publish-sc
+
+      - name: Archive (framework-dependent)
+        run: |
+          Compress-Archive -Path .\publish\* -DestinationPath .\GreenLuma-Manager_win-x64.zip -Force
+
+      - name: Archive (self-contained)
+        run: |
+          Compress-Archive -Path .\publish-sc\* -DestinationPath .\GreenLuma-Manager_win-x64_selfcontained.zip -Force
+
+      - name: Upload artifact (framework-dependent)
+        uses: actions/upload-artifact@v4
+        with:
+          name: GreenLuma-Manager_win-x64
+          path: |
+            GreenLuma-Manager_win-x64.zip
+            publish/**
+
+      - name: Upload artifact (self-contained)
+        uses: actions/upload-artifact@v4
+        with:
+          name: GreenLuma-Manager_win-x64_selfcontained
+          path: |
+            GreenLuma-Manager_win-x64_selfcontained.zip
+            publish-sc/**
+
+      - name: Upload to GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            GreenLuma-Manager_win-x64.zip
+            GreenLuma-Manager_win-x64_selfcontained.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 name: Build Release
 
 on:

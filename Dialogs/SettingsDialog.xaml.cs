@@ -6,6 +6,8 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Collections.Generic;
+using System.Windows.Controls;
 
 namespace GreenLuma_Manager.Dialogs
 {
@@ -15,6 +17,17 @@ namespace GreenLuma_Manager.Dialogs
         private readonly ConfigService _configService;
         private readonly PathDetector _pathDetector;
         private readonly AutostartManager _autostartManager;
+
+        private sealed class LanguageItem
+        {
+            public LanguageItem(string code, string display)
+            {
+                Code = code;
+                Display = display;
+            }
+            public string Code { get; }
+            public string Display { get; }
+        }
 
         public SettingsDialog(Config config)
         {
@@ -37,6 +50,68 @@ namespace GreenLuma_Manager.Dialogs
             chkReplaceSteamAutostart.IsChecked = _config.ReplaceSteamAutostart;
             chkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
             chkAutoUpdate.IsChecked = _config.AutoUpdate;
+
+            InitializeLanguageSelector();
+        }
+
+        private void InitializeLanguageSelector()
+        {
+            try
+            {
+                var items = new List<LanguageItem>
+                {
+                    new("en", TryFindString("Lang.English") ?? "English"),
+                    new("zh-Hans", TryFindString("Lang.ChineseSimplified") ?? "简体中文"),
+                    new("zh-Hant", TryFindString("Lang.ChineseTraditional") ?? "繁體中文"),
+                    new("ja", TryFindString("Lang.Japanese") ?? "日本語")
+                };
+
+                cmbLanguage.DisplayMemberPath = nameof(LanguageItem.Display);
+                cmbLanguage.SelectedValuePath = nameof(LanguageItem.Code);
+                cmbLanguage.ItemsSource = items;
+
+                string code = _config.Language;
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    code = LocalizationService.GetDefaultLanguage();
+                }
+                cmbLanguage.SelectedValue = code;
+
+                cmbLanguage.SelectionChanged -= CmbLanguage_SelectionChanged;
+                cmbLanguage.SelectionChanged += CmbLanguage_SelectionChanged;
+            }
+            catch
+            {
+            }
+        }
+
+        private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                if (cmbLanguage.SelectedValue is string code && !string.IsNullOrWhiteSpace(code))
+                {
+                    _config.Language = code;
+                    ConfigService.Save(_config);
+                    LocalizationService.ApplyLanguage(code);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private string? TryFindString(string key)
+        {
+            try
+            {
+                var obj = TryFindResource(key);
+                return obj as string;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private void OnPreviewKeyDown(object sender, KeyEventArgs e)
