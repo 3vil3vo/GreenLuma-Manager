@@ -40,6 +40,7 @@ public partial class App
                 .Select(g => g.AppId));
             IconCacheService.DeleteUnusedIcons(valid);
             _ = Task.Run(() => WarmupIconsAsync(profiles));
+            _ = SearchService.PrefetchAsync();
         }
         catch
         {
