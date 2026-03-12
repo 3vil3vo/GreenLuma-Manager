@@ -172,9 +172,9 @@ public class SearchService
         }
     }
 
-    public static async Task PrefetchAsync()
+    public static async Task PrefetchAsync(Config config)
     {
-        if (_isPrefetching || (_appListCache != null && DateTime.Now < _cacheExpiry))
+        if (_isPrefetching || (_appListCache != null && DateTime.Now < _cacheExpiry) || !config.PrefetchAppList)
             return;
 
         _isPrefetching = true;

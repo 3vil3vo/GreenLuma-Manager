@@ -28,6 +28,7 @@ public partial class SettingsDialog
         TxtSteamPath.Text = _config.SteamPath;
         TxtGreenLumaPath.Text = _config.GreenLumaPath;
         ChkReplaceSteamAutostart.IsChecked = _config.ReplaceSteamAutostart;
+        ChkPrefetchAppList.IsChecked = _config.PrefetchAppList;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
     }
@@ -234,6 +235,7 @@ public partial class SettingsDialog
         _config.SteamPath = steamPath;
         _config.GreenLumaPath = greenLumaPath;
         _config.ReplaceSteamAutostart = ChkReplaceSteamAutostart.IsChecked.GetValueOrDefault();
+        _config.PrefetchAppList = ChkPrefetchAppList.IsChecked.GetValueOrDefault();
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
 
