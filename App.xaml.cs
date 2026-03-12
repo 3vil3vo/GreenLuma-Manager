@@ -15,13 +15,14 @@ public partial class App
             PluginService.Initialize();
             PluginService.OnApplicationStartup();
 
+            var config = ConfigService.Load();
+
             if (e.Args.Length > 0)
                 foreach (var arg in e.Args)
                     if (string.Equals(arg, "--launch-greenluma", StringComparison.OrdinalIgnoreCase))
                     {
                         try
                         {
-                            var config = ConfigService.Load();
                             GreenLumaService.LaunchGreenLumaAsync(config).GetAwaiter().GetResult();
                         }
                         catch
@@ -40,6 +41,7 @@ public partial class App
                 .Select(g => g.AppId));
             IconCacheService.DeleteUnusedIcons(valid);
             _ = Task.Run(() => WarmupIconsAsync(profiles));
+            _ = SearchService.PrefetchAsync(config);
         }
         catch
         {

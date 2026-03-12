@@ -621,7 +621,7 @@
                                     FontWeight="Bold"
                                     Foreground="{StaticResource TextTertiary}"
                                     Text="STARTUP" />
-                                <StackPanel>
+                                <StackPanel Margin="0,0,0,24">
                                     <CheckBox
                                         x:Name="ChkReplaceSteamAutostart"
                                         Content="Replace Steam on Windows Startup"
@@ -631,6 +631,19 @@
                                         FontSize="13"
                                         Foreground="{StaticResource TextTertiary}"
                                         Text="Launch GreenLuma Manager automatically when Windows starts, replacing the default Steam startup."
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <CheckBox
+                                        x:Name="ChkPrefetchAppList"
+                                        Content="Prefetch Steam App List"
+                                        Style="{StaticResource ChillSwitch}" />
+                                    <TextBlock
+                                        Margin="0,4,60,0"
+                                        FontSize="13"
+                                        Foreground="{StaticResource TextTertiary}"
+                                        Text="Speed up the App Search by prefetching all Steam Apps when GreenLuma Manager starts."
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                             </StackPanel>

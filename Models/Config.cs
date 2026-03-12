@@ -21,5 +21,7 @@ public class Config
 
     [DataMember] public bool ReplaceSteamAutostart { get; set; }
 
+    [DataMember] public bool PrefetchAppList { get; set; }
+
     [DataMember] public bool FirstRun { get; set; } = true;
 }
