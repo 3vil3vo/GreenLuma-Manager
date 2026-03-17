@@ -77,8 +77,9 @@ public class SearchService
     {
         try
         {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             var url = string.Format(SteamStoreSearchUrl, Uri.EscapeDataString(query));
-            var response = await Client.GetStringAsync(url).ConfigureAwait(false);
+            var response = await Client.GetStringAsync(url, cts.Token).ConfigureAwait(false);
             var json = JObject.Parse(response);
 
             var items = json["items"];
@@ -223,12 +224,11 @@ public class SearchService
 
                 var storeTask = SearchStoreAsync(query);
 
-                var localTask = Task.Run(async () =>
-                {
-                    var appList = await GetAppListAsync().ConfigureAwait(false);
-                    if (appList.Count == 0) return [];
+                var appList = _appListCache;
+                List<Game> localResults = [];
 
-                    return appList
+                if (appList is { Count: > 0 } && DateTime.Now < _cacheExpiry)
+                    localResults = appList
                         .Select(app => (app, score: CalculateScore(app.Name, queryLower)))
                         .Where(x => x.score > 0)
                         .OrderByDescending(x => x.score)
@@ -241,12 +241,8 @@ public class SearchService
                             Type = "Game"
                         })
                         .ToList();
-                });
 
-                await Task.WhenAll(storeTask, localTask).ConfigureAwait(false);
-
-                var smartResults = storeTask.Result;
-                var localResults = localTask.Result;
+                var smartResults = await storeTask.ConfigureAwait(false);
 
                 var finalResults = new List<Game>(smartResults);
                 var existingIds = new HashSet<string>(smartResults.Select(g => g.AppId));

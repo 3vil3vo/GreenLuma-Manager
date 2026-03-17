@@ -362,12 +362,12 @@ public partial class MainWindow
         if (token.IsCancellationRequested)
             return;
 
-        await SearchService.FetchIconUrlsAsync(results).ConfigureAwait(true);
-
-        if (token.IsCancellationRequested)
-            return;
-
         DisplaySearchResults(results);
+
+        _ = Task.Run(async () =>
+        {
+            await SearchService.FetchIconUrlsAsync(results).ConfigureAwait(false);
+        }, token);
     }
 
     private void ShowSearchLoading()

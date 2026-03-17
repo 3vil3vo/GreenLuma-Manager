@@ -42,6 +42,7 @@ public partial class App
             IconCacheService.DeleteUnusedIcons(valid);
             _ = Task.Run(() => WarmupIconsAsync(profiles));
             _ = SearchService.PrefetchAsync(config);
+            _ = Task.Run(() => { _ = SteamService.Instance; });
         }
         catch
         {
