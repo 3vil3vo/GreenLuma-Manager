@@ -427,6 +427,8 @@ public partial class MainWindow
         _searchResults.Clear();
         _lastAddAllGames = null;
         if (BtnAddAll != null) BtnAddAll.Content = "ADD ALL";
+        BtnHideAdded.IsChecked = false;
+        BtnHideAdded.Visibility = Visibility.Collapsed;
 
         var existingIds = new HashSet<string>(_games.Select(g => g.AppId));
         foreach (var game in results)
@@ -445,6 +447,7 @@ public partial class MainWindow
 
         TxtResultCount.Text = _searchResults.Count.ToString();
         PnlResultsHeader.Visibility = Visibility.Visible;
+        BtnHideAdded.Visibility = Visibility.Visible;
         _loadingDotsTimer?.Stop();
 
         var fadeOut = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(150));
@@ -492,6 +495,17 @@ public partial class MainWindow
             BtnAddAll.Visibility = visibility;
     }
 
+    private void HideAdded_Changed(object sender, RoutedEventArgs e)
+    {
+        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_searchResults);
+        if (BtnHideAdded.IsChecked == true)
+            view.Filter = item => item is Game g && !g.IsInProfile;
+        else
+            view.Filter = null;
+
+        TxtResultCount.Text = view.Cast<object>().Count().ToString();
+    }
+
     private void ResultRow_DoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DgResults.SelectedItem is Game selectedGame)
@@ -522,6 +536,8 @@ public partial class MainWindow
                 if (existing != null)
                 {
                     _games.Remove(existing);
+                    var searchResult = _searchResults.FirstOrDefault(g => g.AppId == game.AppId);
+                    if (searchResult != null) searchResult.IsInProfile = false;
                     removed++;
                 }
             }
@@ -1046,6 +1062,10 @@ public partial class MainWindow
         IconCacheService.DeleteCachedIcon(game.AppId);
 
         _games.Remove(game);
+
+        var searchResult = _searchResults.FirstOrDefault(g => g.AppId == game.AppId);
+        if (searchResult != null) searchResult.IsInProfile = false;
+
         ShowToast("Game removed from profile");
         SaveCurrentProfile();
         UpdateGameListState();
