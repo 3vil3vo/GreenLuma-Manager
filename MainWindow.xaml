@@ -279,6 +279,7 @@
                                     <Border
                                         x:Name="DropDownBorder"
                                         MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="200"
                                         Margin="0,4,0,0"
                                         Padding="4"
                                         Background="{StaticResource SurfaceBg}"
@@ -298,7 +299,6 @@
                                             <ScaleTransform ScaleX="1" ScaleY="1" />
                                         </Border.RenderTransform>
                                         <ScrollViewer
-                                            MaxHeight="200"
                                             HorizontalScrollBarVisibility="Disabled"
                                             VerticalScrollBarVisibility="Auto">
                                             <ScrollViewer.Resources>
