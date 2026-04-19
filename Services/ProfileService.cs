@@ -19,6 +19,7 @@ public class ProfileService
         try
         {
             EnsureProfilesDirectoryExists();
+            TryImportFromGlrManager();
             TryMigrateProfilesFromOldVersion();
             LoadProfilesFromDirectory(profiles);
             if (profiles.Count == 0) return CreateDefaultProfile(profiles);
@@ -155,7 +156,7 @@ public class ProfileService
 
     private static string SerializeProfile(Profile profile)
     {
-        return JsonSerializer.Serialize(profile);
+        return JsonSerializer.Serialize(profile, new JsonSerializerOptions { WriteIndented = true });
     }
 
     private static string SanitizeFileName(string name)
@@ -164,6 +165,43 @@ public class ProfileService
         var sanitized = new string([.. name.Select(c => invalidChars.Contains(c) ? '_' : c)]);
         sanitized = sanitized.Replace("..", "_");
         return Path.GetFileName(sanitized);
+    }
+
+    private static void TryImportFromGlrManager()
+    {
+        try
+        {
+            var existingFiles = Directory.GetFiles(ProfilesDir, "*.json");
+            if (existingFiles.Length > 0) return;
+
+            var glrProfilesDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "GLR_Manager",
+                "Profiles");
+
+            if (!Directory.Exists(glrProfilesDir)) return;
+
+            var glrFiles = Directory.GetFiles(glrProfilesDir, "*.json");
+            if (glrFiles.Length == 0) return;
+
+            foreach (var file in glrFiles)
+                try
+                {
+                    var fileName = Path.GetFileName(file);
+                    var destPath = Path.Combine(ProfilesDir, SanitizeFileName(fileName));
+
+                    if (!File.Exists(destPath))
+                        File.Copy(file, destPath);
+                }
+                catch (Exception ex)
+                {
+                    LogService.LogError("ProfileService.ImportGlrFile", ex);
+                }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("ProfileService.TryImportFromGlrManager", ex);
+        }
     }
 
     private static void TryMigrateProfilesFromOldVersion()

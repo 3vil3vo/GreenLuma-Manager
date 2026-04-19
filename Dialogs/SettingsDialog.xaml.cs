@@ -31,6 +31,8 @@ public partial class SettingsDialog
         TxtGreenLumaPath.Text = _config.GreenLumaPath;
         TxtSteamApiKey.Text = _config.SteamApiKey;
         ChkReplaceSteamAutostart.IsChecked = _config.ReplaceSteamAutostart;
+        ChkPrefetchAppList.IsChecked = _config.PrefetchAppList;
+        ChkStartSteamMinimized.IsChecked = _config.StartSteamMinimized;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
     }
@@ -128,6 +130,51 @@ public partial class SettingsDialog
         CustomMessageBox.Show("All data has been wiped. The application will now close.", "Complete",
             icon: MessageBoxImage.Asterisk);
         Application.Current.Shutdown();
+    }
+
+    private async void RestartSteam_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var steamExePath = Path.Combine(_config.SteamPath, "Steam.exe");
+            if (!File.Exists(steamExePath))
+            {
+                CustomMessageBox.Show("Steam executable not found at the configured path.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string[] processNames = ["steam", "steamservice", "steamwebhelper"];
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = steamExePath,
+                Arguments = "-shutdown",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            await Task.Delay(3000);
+
+            foreach (var name in processNames)
+                foreach (var proc in Process.GetProcessesByName(name))
+                    try { proc.Kill(); proc.WaitForExit(3000); } catch { }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = steamExePath,
+                UseShellExecute = true
+            });
+
+            CustomMessageBox.Show("Steam has been restarted.", "Done",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SettingsDialog.RestartSteam", ex);
+            CustomMessageBox.Show("Failed to restart Steam: " + ex.Message, "Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
 
@@ -238,6 +285,8 @@ public partial class SettingsDialog
         _config.GreenLumaPath = greenLumaPath;
         _config.SteamApiKey = TxtSteamApiKey.Text?.Trim() ?? string.Empty;
         _config.ReplaceSteamAutostart = ChkReplaceSteamAutostart.IsChecked.GetValueOrDefault();
+        _config.PrefetchAppList = ChkPrefetchAppList.IsChecked.GetValueOrDefault();
+        _config.StartSteamMinimized = ChkStartSteamMinimized.IsChecked.GetValueOrDefault();
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
 

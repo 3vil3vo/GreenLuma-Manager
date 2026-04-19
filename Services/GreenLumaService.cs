@@ -413,6 +413,9 @@ public partial class GreenLumaService
         else
             ApplyNormalModeSettings(settings);
 
+        if (config.StartSteamMinimized)
+            settings["CommandLine"] = settings.GetValueOrDefault("CommandLine", "") + " -silent";
+
         return settings;
     }
 

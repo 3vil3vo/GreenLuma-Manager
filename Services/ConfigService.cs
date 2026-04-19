@@ -88,6 +88,7 @@ public class ConfigService
                     LastProfile = jsonData["last_profile"]?.ToString() ?? "default",
                     CheckUpdate = jsonData["check_update"]?.ToObject<bool>() ?? true,
                     ReplaceSteamAutostart = jsonData["replace_steam_autostart"]?.ToObject<bool>() ?? false,
+                    PrefetchAppList = jsonData["prefetch_app_list"]?.ToObject<bool>() ?? false,
                     SteamApiKey = jsonData["steam_api_key"]?.ToString() ?? string.Empty,
                     FirstRun = false
                 };

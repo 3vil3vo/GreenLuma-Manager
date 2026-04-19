@@ -655,7 +655,7 @@
                                     FontWeight="Bold"
                                     Foreground="{StaticResource TextTertiary}"
                                     Text="STARTUP" />
-                                <StackPanel>
+                                <StackPanel Margin="0,0,0,24">
                                     <CheckBox
                                         x:Name="ChkReplaceSteamAutostart"
                                         Content="Replace Steam on Windows Startup"
@@ -665,6 +665,32 @@
                                         FontSize="13"
                                         Foreground="{StaticResource TextTertiary}"
                                         Text="Launch GreenLuma Manager automatically when Windows starts, replacing the default Steam startup."
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <StackPanel Margin="0,0,0,24">
+                                    <CheckBox
+                                        x:Name="ChkPrefetchAppList"
+                                        Content="Prefetch Steam App List"
+                                        Style="{StaticResource ChillSwitch}" />
+                                    <TextBlock
+                                        Margin="0,4,60,0"
+                                        FontSize="13"
+                                        Foreground="{StaticResource TextTertiary}"
+                                        Text="Speed up the App Search by prefetching all Steam Apps when GreenLuma Manager starts."
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <CheckBox
+                                        x:Name="ChkStartSteamMinimized"
+                                        Content="Start Steam Minimized"
+                                        Style="{StaticResource ChillSwitch}" />
+                                    <TextBlock
+                                        Margin="0,4,60,0"
+                                        FontSize="13"
+                                        Foreground="{StaticResource TextTertiary}"
+                                        Text="Launch Steam minimized to the system tray instead of showing the main window."
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                             </StackPanel>
@@ -736,6 +762,39 @@
                             FontSize="14"
                             Foreground="{StaticResource TextSecondary}"
                             Text="Dangerous actions and data management." />
+
+                        <Border
+                            Margin="0,0,0,20"
+                            Padding="24"
+                            Background="{StaticResource SurfaceBg}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock
+                                        FontSize="15"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextPrimary}"
+                                        Text="Restart Steam" />
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontSize="13"
+                                        Foreground="{StaticResource TextSecondary}"
+                                        Text="Kill all Steam processes and relaunch Steam."
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    Click="RestartSteam_Click"
+                                    Content="Restart"
+                                    Style="{StaticResource ModernBtn}" />
+                            </Grid>
+                        </Border>
 
                         <Border
                             Padding="24"

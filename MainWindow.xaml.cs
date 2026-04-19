@@ -28,6 +28,7 @@ public partial class MainWindow
     private Config? _config;
     private Profile? _currentProfile;
     private string? _editingOriginalName;
+    private List<Game>? _lastAddAllGames;
     private DispatcherTimer? _loadingDotsTimer;
     private CancellationTokenSource? _profileLoadCts;
     private CancellationTokenSource? _searchCts;
@@ -68,6 +69,17 @@ public partial class MainWindow
     public ICommand LaunchGreenlumaCommand { get; }
     public ICommand ToggleStealthCommand { get; }
 
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (_config != null && WindowState == WindowState.Normal)
+        {
+            _config.WindowWidth = Width;
+            _config.WindowHeight = Height;
+            ConfigService.Save(_config);
+        }
+        base.OnClosing(e);
+    }
+
     private void InitializeLoadingTimer()
     {
         _loadingDotsTimer = new DispatcherTimer
@@ -90,6 +102,12 @@ public partial class MainWindow
         {
             TglStealthMode.IsChecked = _config.NoHook;
             SearchService.SetApiKey(_config.SteamApiKey);
+
+            if (_config.WindowWidth >= MinWidth && _config.WindowHeight >= MinHeight)
+            {
+                Width = _config.WindowWidth;
+                Height = _config.WindowHeight;
+            }
         }
         UpdateStatusIndicator();
     }
@@ -403,6 +421,8 @@ public partial class MainWindow
     private void DisplaySearchResults(List<Game> results)
     {
         _searchResults.Clear();
+        _lastAddAllGames = null;
+        if (BtnAddAll != null) BtnAddAll.Content = "ADD ALL";
 
         foreach (var game in results) _searchResults.Add(game);
 
@@ -411,10 +431,11 @@ public partial class MainWindow
         foreach (var column in DgResults.Columns)
         {
             column.SortDirection = null;
-            column.CanUserSort = false;
+            column.CanUserSort = true;
         }
 
         TxtResultCount.Text = _searchResults.Count.ToString();
+        PnlResultsHeader.Visibility = Visibility.Visible;
         _loadingDotsTimer?.Stop();
 
         var fadeOut = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(150));
@@ -444,6 +465,7 @@ public partial class MainWindow
         };
 
         DgResults.BeginAnimation(OpacityProperty, fadeIn);
+        SetAddAllVisibility(Visibility.Visible);
         ShowToast($"Found {_searchResults.Count} results");
     }
 
@@ -451,7 +473,14 @@ public partial class MainWindow
     {
         DgResults.Visibility = Visibility.Collapsed;
         PnlEmptyResults.Visibility = Visibility.Visible;
+        SetAddAllVisibility(Visibility.Collapsed);
         ShowToast("No results found", false);
+    }
+
+    private void SetAddAllVisibility(Visibility visibility)
+    {
+        if (BtnAddAll != null)
+            BtnAddAll.Visibility = visibility;
     }
 
     private void ResultRow_DoubleClick(object sender, MouseButtonEventArgs e)
@@ -468,9 +497,67 @@ public partial class MainWindow
         if (sender is not Button button || button.Tag is not Game result)
             return;
 
+        AddGameToProfile(result);
+    }
+
+    private void AddAllGames_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+
+        if (_lastAddAllGames != null)
+        {
+            var removed = 0;
+            foreach (var game in _lastAddAllGames)
+            {
+                var existing = _games.FirstOrDefault(g => g.AppId == game.AppId);
+                if (existing != null)
+                {
+                    _games.Remove(existing);
+                    removed++;
+                }
+            }
+
+            if (removed > 0)
+            {
+                SaveCurrentProfile();
+                UpdateGameListState();
+                ShowToast($"Removed {removed} game{(removed == 1 ? "" : "s")}");
+            }
+
+            _lastAddAllGames = null;
+            btn.Content = "ADD ALL";
+            return;
+        }
+
+        if (_searchResults.Count == 0) return;
+
+        var added = new List<Game>();
+        foreach (var result in _searchResults.ToList())
+        {
+            if (_games.Any(g => g.AppId == result.AppId))
+                continue;
+
+            AddGameToProfile(result, showToast: false);
+            added.Add(result);
+        }
+
+        if (added.Count > 0)
+        {
+            _lastAddAllGames = added;
+            btn.Content = "UNDO";
+            ShowToast($"Added {added.Count} game{(added.Count == 1 ? "" : "s")}");
+        }
+        else
+        {
+            ShowToast("All results already in profile", false);
+        }
+    }
+
+    private void AddGameToProfile(Game result, bool showToast = true)
+    {
         if (_games.Any(g => g.AppId == result.AppId))
         {
-            ShowToast(result.Name + " already in profile", false);
+            if (showToast) ShowToast(result.Name + " already in profile", false);
             return;
         }
 
@@ -690,7 +777,8 @@ public partial class MainWindow
 
         if (_profiles.Any(p => p.Equals(newProfile.Name, StringComparison.OrdinalIgnoreCase)))
         {
-            ShowToast("Profile name already exists", false);
+            CustomMessageBox.Show("A profile with this name already exists.", "Duplicate Profile",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 

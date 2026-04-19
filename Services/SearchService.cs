@@ -65,6 +65,7 @@ public class SearchService
     private static readonly ConcurrentDictionary<string, GameDetails> DetailsCache = new();
     private static DateTime _cacheExpiry = DateTime.MinValue;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
+    private static bool _isPrefetching;
 
     static SearchService()
     {
@@ -166,10 +167,12 @@ public class SearchService
             }
 
             _cacheExpiry = DateTime.Now.Add(CacheDuration);
+            _isPrefetching = false;
             return _appListCache;
         }
         catch (Exception ex)
         {
+            _isPrefetching = false;
             LogService.LogError("SearchService.GetAppList", ex);
             return _appListCache ?? [];
         }
@@ -179,7 +182,26 @@ public class SearchService
         }
     }
 
-    public static async Task<List<Game>> SearchAsync(string query, int maxResults = 50)
+    public static async Task PrefetchAsync(Config config)
+    {
+        if (_isPrefetching || (_appListCache != null && DateTime.Now < _cacheExpiry) || !config.PrefetchAppList)
+            return;
+
+        _isPrefetching = true;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await GetAppListAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                _isPrefetching = false;
+            }
+        });
+    }
+
+    public static async Task<List<Game>> SearchAsync(string query, int maxResults = 200)
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             return [];
@@ -236,10 +258,10 @@ public class SearchService
                 var smartResults = storeTask.Result;
                 var localResults = localTask.Result;
 
-                var finalResults = new List<Game>(smartResults);
-                var existingIds = new HashSet<string>(smartResults.Select(g => g.AppId));
+                var finalResults = new List<Game>(localResults);
+                var existingIds = new HashSet<string>(localResults.Select(g => g.AppId));
 
-                foreach (var game in localResults)
+                foreach (var game in smartResults)
                 {
                     if (finalResults.Count >= maxResults) break;
 

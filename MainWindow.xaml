@@ -1256,13 +1256,18 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <Grid
+                            x:Name="PnlResultsHeader"
+                            Grid.Row="0"
+                            Margin="0,0,0,16"
+                            Visibility="Collapsed">
                             <TextBlock Style="{StaticResource HeaderTxt}" Text="RESULTS" />
                             <Border
                                 Padding="12,6"
                                 HorizontalAlignment="Right"
                                 Background="{StaticResource SurfaceBg}"
-                                CornerRadius="12">
+                                CornerRadius="12"
+                                VerticalAlignment="Center">
                                 <TextBlock
                                     x:Name="TxtResultCount"
                                     FontSize="12"
@@ -1312,7 +1317,21 @@
                                             CanUserSort="True"
                                             Header="TYPE"
                                             IsReadOnly="True" />
-                                        <DataGridTemplateColumn Width="120" Header="">
+                                        <DataGridTemplateColumn Width="140">
+                                            <DataGridTemplateColumn.HeaderStyle>
+                                                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                                    <Setter Property="Padding" Value="4,4" />
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                </Style>
+                                            </DataGridTemplateColumn.HeaderStyle>
+                                            <DataGridTemplateColumn.Header>
+                                                <Button
+                                                    x:Name="BtnAddAll"
+                                                    Click="AddAllGames_Click"
+                                                    Content="ADD ALL"
+                                                    Style="{StaticResource AddBtn}"
+                                                    Visibility="Collapsed" />
+                                            </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button
