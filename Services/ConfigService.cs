@@ -31,8 +31,9 @@ public class ConfigService
 
             return DeserializeConfig(configJson) ?? new Config();
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ConfigService.Load", ex);
             return new Config();
         }
     }
@@ -60,8 +61,9 @@ public class ConfigService
         {
             return JsonSerializer.Deserialize<Config>(json);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ConfigService.DeserializeConfig", ex);
             return null;
         }
     }
@@ -86,7 +88,7 @@ public class ConfigService
                     LastProfile = jsonData["last_profile"]?.ToString() ?? "default",
                     CheckUpdate = jsonData["check_update"]?.ToObject<bool>() ?? true,
                     ReplaceSteamAutostart = jsonData["replace_steam_autostart"]?.ToObject<bool>() ?? false,
-                    PrefetchAppList = jsonData["prefetch_app_list"]?.ToObject<bool>() ?? false,
+                    SteamApiKey = jsonData["steam_api_key"]?.ToString() ?? string.Empty,
                     FirstRun = false
                 };
 
@@ -96,8 +98,9 @@ public class ConfigService
 
             return null;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ConfigService.TryMigrate", ex);
             return null;
         }
     }
@@ -111,9 +114,9 @@ public class ConfigService
             var json = SerializeConfig(config);
             File.WriteAllText(ConfigPath, json, Encoding.UTF8);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ConfigService.Save", ex);
         }
     }
 
@@ -130,9 +133,9 @@ public class ConfigService
 
             if (Directory.Exists(ConfigDir)) Directory.Delete(ConfigDir, true);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ConfigService.WipeData", ex);
         }
     }
 }

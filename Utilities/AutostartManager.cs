@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using GreenLuma_Manager.Models;
+using GreenLuma_Manager.Services;
 using Microsoft.Win32;
 
 namespace GreenLuma_Manager.Utilities;
@@ -25,9 +26,9 @@ public class AutostartManager
             else
                 RestoreOriginalSteam(runKey, config?.GreenLumaPath);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("AutostartManager.ManageAutostart", ex);
         }
     }
 
@@ -61,9 +62,9 @@ public class AutostartManager
                 if (File.Exists(vbsPath)) File.Delete(vbsPath);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("AutostartManager.CleanupVbs", ex);
         }
     }
 
@@ -76,9 +77,9 @@ public class AutostartManager
             DeleteBackupKey();
             CleanupAllVbsScripts();
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("AutostartManager.CleanupAll", ex);
         }
     }
 
@@ -101,14 +102,14 @@ public class AutostartManager
                     var vbsPath = Path.Combine(basePath, "GLM_Autostart.vbs");
                     if (File.Exists(vbsPath)) File.Delete(vbsPath);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    LogService.LogError("AutostartManager.CleanupVbsFile", ex);
                 }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("AutostartManager.CleanupAllVbs", ex);
         }
     }
 
@@ -119,9 +120,9 @@ public class AutostartManager
             using var runKey = Registry.CurrentUser.OpenSubKey(RunKeyPath, true);
             runKey?.DeleteValue(GreenLumaValueName, false);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("AutostartManager.RemoveAutostart", ex);
         }
     }
 
@@ -132,9 +133,9 @@ public class AutostartManager
             using var runKey = Registry.CurrentUser.OpenSubKey(RunKeyPath, true);
             runKey?.DeleteValue(GreenLumaMonitorValueName, false);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("AutostartManager.RemoveMonitor", ex);
         }
     }
 
@@ -144,9 +145,9 @@ public class AutostartManager
         {
             Registry.CurrentUser.DeleteSubKeyTree(BackupKeyPath, false);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("AutostartManager.DeleteBackupKey", ex);
         }
     }
 }

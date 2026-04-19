@@ -15,22 +15,19 @@ public partial class App
             PluginService.Initialize();
             PluginService.OnApplicationStartup();
 
-            var config = ConfigService.Load();
-
             if (e.Args.Length > 0)
                 foreach (var arg in e.Args)
                     if (string.Equals(arg, "--launch-greenluma", StringComparison.OrdinalIgnoreCase))
                     {
                         try
                         {
+                            var config = ConfigService.Load();
                             GreenLumaService.LaunchGreenLumaAsync(config).GetAwaiter().GetResult();
                         }
-                        catch
+                        catch (Exception ex)
                         {
-                            // ignored
+                            LogService.LogError("App.LaunchGreenluma", ex);
                         }
-
-                        Shutdown();
                         return;
                     }
 
@@ -41,11 +38,10 @@ public partial class App
                 .Select(g => g.AppId));
             IconCacheService.DeleteUnusedIcons(valid);
             _ = Task.Run(() => WarmupIconsAsync(profiles));
-            _ = SearchService.PrefetchAsync(config);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("App.OnStartup", ex);
         }
     }
 
@@ -55,9 +51,9 @@ public partial class App
         {
             PluginService.OnApplicationShutdown();
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("App.OnExit", ex);
         }
 
         base.OnExit(e);
@@ -103,9 +99,9 @@ public partial class App
                                     changed = true;
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
-                                // ignored
+                                LogService.LogError("App.WarmupIcon", ex);
                             }
                             finally
                             {
@@ -129,9 +125,9 @@ public partial class App
                                     changed = true;
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
-                                // ignored
+                                LogService.LogError("App.WarmupIconRedownload", ex);
                             }
                             finally
                             {
@@ -148,17 +144,17 @@ public partial class App
                     {
                         ProfileService.Save(profile);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // ignored
+                        LogService.LogError("App.WarmupSave", ex);
                     }
 
                 tasks.Clear();
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("App.WarmupIcons", ex);
         }
     }
 }

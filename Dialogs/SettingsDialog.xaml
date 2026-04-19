@@ -582,6 +582,40 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
+
+                        <Border
+                            Margin="0,20,0,0"
+                            Padding="24"
+                            Background="{StaticResource SurfaceBg}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,20"
+                                    FontSize="12"
+                                    FontWeight="Bold"
+                                    Foreground="{StaticResource TextTertiary}"
+                                    Text="API CONFIGURATION" />
+                                <StackPanel>
+                                    <TextBlock
+                                        Margin="0,0,0,4"
+                                        FontSize="13"
+                                        Foreground="{StaticResource TextSecondary}"
+                                        Text="Steam Web API Key" />
+                                    <TextBlock Style="{StaticResource DescriptionTxt}">
+                                        <Run Text="Required for extended search. Get one free at " />
+                                        <Hyperlink NavigateUri="https://steamcommunity.com/dev/apikey"
+                                                   RequestNavigate="Hyperlink_RequestNavigate"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   TextDecorations="Underline">
+                                            steamcommunity.com/dev/apikey
+                                        </Hyperlink>
+                                    </TextBlock>
+                                    <TextBox x:Name="TxtSteamApiKey" Style="{StaticResource ChillTextBox}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Grid>
 
@@ -621,7 +655,7 @@
                                     FontWeight="Bold"
                                     Foreground="{StaticResource TextTertiary}"
                                     Text="STARTUP" />
-                                <StackPanel Margin="0,0,0,24">
+                                <StackPanel>
                                     <CheckBox
                                         x:Name="ChkReplaceSteamAutostart"
                                         Content="Replace Steam on Windows Startup"
@@ -631,19 +665,6 @@
                                         FontSize="13"
                                         Foreground="{StaticResource TextTertiary}"
                                         Text="Launch GreenLuma Manager automatically when Windows starts, replacing the default Steam startup."
-                                        TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <StackPanel>
-                                    <CheckBox
-                                        x:Name="ChkPrefetchAppList"
-                                        Content="Prefetch Steam App List"
-                                        Style="{StaticResource ChillSwitch}" />
-                                    <TextBlock
-                                        Margin="0,4,60,0"
-                                        FontSize="13"
-                                        Foreground="{StaticResource TextTertiary}"
-                                        Text="Speed up the App Search by prefetching all Steam Apps when GreenLuma Manager starts."
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                             </StackPanel>

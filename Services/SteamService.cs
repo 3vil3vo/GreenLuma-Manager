@@ -51,9 +51,9 @@ public sealed class SteamService : IDisposable
         {
             _callbackLoop.Wait(1000);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("SteamService.Dispose", ex);
         }
 
         _cts.Dispose();
@@ -137,8 +137,9 @@ public sealed class SteamService : IDisposable
 
                 if (results.Count > 0) return results;
             }
-            catch
+            catch (Exception ex)
             {
+                LogService.LogError("SteamService.GetAppInfoBatch", ex);
                 if (attempt == maxRetries) break;
                 await Task.Delay(500).ConfigureAwait(false);
             }
@@ -166,8 +167,9 @@ public sealed class SteamService : IDisposable
 
             return null;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("SteamService.GetAppPackageInfo", ex);
             return null;
         }
     }

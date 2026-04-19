@@ -40,9 +40,9 @@ public partial class GreenLumaService
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("GreenLumaService.ValidateInstallation", ex);
         }
 
         if (year == null || arch == null)
@@ -140,8 +140,9 @@ public partial class GreenLumaService
 
             return totalCount;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("GreenLumaService.GenerateAppList", ex);
             return -1;
         }
     }
@@ -159,9 +160,9 @@ public partial class GreenLumaService
 
                 return LaunchInjector(config);
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("GreenLumaService.LaunchGreenLuma", ex);
                 return false;
             }
         });
@@ -204,6 +205,7 @@ public partial class GreenLumaService
         try
         {
             var steamExePath = Path.Combine(config.SteamPath, "Steam.exe");
+            string[] processNames = ["steam", "steamservice", "steamwebhelper"];
 
             if (File.Exists(steamExePath))
                 try
@@ -217,16 +219,17 @@ public partial class GreenLumaService
                     });
                     Thread.Sleep(2000);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    LogService.LogError("GreenLumaService.KillSteam.Shutdown", ex);
                 }
 
-            foreach (var processName in SteamProcessNames) KillProcessesByName(processName);
+            foreach (var processName in processNames)
+                KillProcessesByName(processName);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("GreenLumaService.KillSteam", ex);
         }
     }
 
@@ -238,9 +241,9 @@ public partial class GreenLumaService
                 process.Kill();
                 process.WaitForExit(ProcessKillTimeoutMs);
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("GreenLumaService.KillProcess", ex);
             }
     }
 
@@ -254,9 +257,9 @@ public partial class GreenLumaService
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             return string.Equals(fullPath1, fullPath2, StringComparison.OrdinalIgnoreCase);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("GreenLumaService.AreSameDirectory", ex);
             return false;
         }
     }
@@ -277,9 +280,9 @@ public partial class GreenLumaService
 
             File.WriteAllLines(iniPath, updatedLines);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("GreenLumaService.UpdateInjectorIni", ex);
         }
     }
 
@@ -305,9 +308,9 @@ public partial class GreenLumaService
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("GreenLumaService.ExtractDllValue", ex);
         }
 
         return null;
@@ -327,9 +330,9 @@ public partial class GreenLumaService
 
             if (m.Success) return m.Value;
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("GreenLumaService.CleanDllValue", ex);
         }
 
         return s;
@@ -361,9 +364,9 @@ public partial class GreenLumaService
                 {
                     rooted = Path.IsPathRooted(candidate);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    LogService.LogError("GreenLumaService.IsPathRooted", ex);
                     rooted = false;
                 }
 
@@ -374,9 +377,9 @@ public partial class GreenLumaService
                     {
                         full = Path.GetFullPath(candidate);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // ignored
+                        LogService.LogError("GreenLumaService.GetFullPath", ex);
                     }
 
                     settings["Dll"] = $" \"{full}\"";
@@ -388,9 +391,9 @@ public partial class GreenLumaService
                     {
                         fullDllPath = Path.GetFullPath(fullDllPath);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // ignored
+                        LogService.LogError("GreenLumaService.GetFullPath", ex);
                     }
 
                     settings["Dll"] = $" \"{fullDllPath}\"";

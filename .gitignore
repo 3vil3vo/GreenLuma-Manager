@@ -86,3 +86,5 @@ UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/
 *.rptproj.bak
+.github/
+CONTRIBUTING.md

@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.IO;
+using GreenLuma_Manager.Services;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 
@@ -38,8 +39,9 @@ public class IconUrlConverter : IValueConverter
 
             return null;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("IconUrlConverter.Convert", ex);
             return null;
         }
     }

@@ -86,7 +86,11 @@ public partial class MainWindow
     private void LoadConfig()
     {
         _config = ConfigService.Load();
-        if (_config != null) TglStealthMode.IsChecked = _config.NoHook;
+        if (_config != null)
+        {
+            TglStealthMode.IsChecked = _config.NoHook;
+            SearchService.SetApiKey(_config.SteamApiKey);
+        }
         UpdateStatusIndicator();
     }
 
@@ -120,9 +124,9 @@ public partial class MainWindow
             if (updateInfo?.UpdateAvailable == true)
                 await Application.Current.Dispatcher.InvokeAsync(() => HandleUpdateAvailable(updateInfo));
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.CheckForUpdates", ex);
         }
     }
 
@@ -200,7 +204,7 @@ public partial class MainWindow
 
     private void GitHubButton_Click(object sender, RoutedEventArgs e)
     {
-        LaunchBrowser("https://github.com/3vil3vo/GreenLuma-Manager");
+        LaunchBrowser("https://youtu.be/dQw4w9WgXcQ");
     }
 
     private async void SettingsButton_Click(object? sender, RoutedEventArgs? e)
@@ -225,9 +229,9 @@ public partial class MainWindow
                     await ImportExistingAppListAsync().ConfigureAwait(true);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.SettingsButton", ex);
         }
     }
 
@@ -322,9 +326,9 @@ public partial class MainWindow
                 ShowToast("Search failed: " + ex.Message, false);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.SearchButton", ex);
         }
     }
 
@@ -508,9 +512,9 @@ public partial class MainWindow
                     }
                 });
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("MainWindow.AddGameBackground", ex);
             }
         });
     }
@@ -585,9 +589,9 @@ public partial class MainWindow
             var gamesToProcess = _games.ToList();
             _ = UpdateIconsForCurrentProfileAsync(gamesToProcess, token);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.LoadProfile", ex);
         }
     }
 
@@ -635,9 +639,9 @@ public partial class MainWindow
                         await Application.Current.Dispatcher.InvokeAsync(() => game.IconUrl = cachedPath);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    LogService.LogError("MainWindow.UpdateIcons", ex);
                 }
                 finally
                 {
@@ -751,9 +755,9 @@ public partial class MainWindow
 
             ShowToast($"Imported profile '{profile.Name}'");
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.ImportProfile", ex);
         }
     }
 
@@ -824,8 +828,9 @@ public partial class MainWindow
                     if (!string.IsNullOrWhiteSpace(id)) appIds.Add(id);
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                LogService.LogError("MainWindow.ReadAppListFiles", ex);
                 ShowToast("Failed to read AppList files.", false);
                 return;
             }
@@ -950,9 +955,9 @@ public partial class MainWindow
 
                         importedGames.Add(game);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // ignored
+                        LogService.LogError("MainWindow.LoadAppListImport", ex);
                     }
                     finally
                     {
@@ -1008,9 +1013,9 @@ public partial class MainWindow
             var totalDepotsIncluded = importedGames.Sum(g => g.Depots.Count) + depotsAddedCount;
             ShowToast($"Added {importedGames.Count} Games/DLCs & {totalDepotsIncluded} Depots from {totalFound} IDs");
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.LoadAppList", ex);
         }
     }
 
@@ -1181,9 +1186,9 @@ public partial class MainWindow
                 BtnGenerateApplist.IsEnabled = true;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.GenerateApplist", ex);
         }
     }
 
@@ -1224,9 +1229,9 @@ public partial class MainWindow
                 BtnLaunchGreenluma.IsEnabled = true;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.LaunchGreenluma", ex);
         }
     }
 
@@ -1357,8 +1362,9 @@ public partial class MainWindow
                 if (!string.IsNullOrWhiteSpace(appId)) appIds.Add(appId);
             }
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("MainWindow.ReadExistingAppList", ex);
             return;
         }
 
@@ -1761,9 +1767,9 @@ public partial class MainWindow
         {
             plugin.ShowUi(this);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("MainWindow.PluginButton", ex);
         }
     }
 

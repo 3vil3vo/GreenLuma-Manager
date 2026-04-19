@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Text.RegularExpressions;
+using GreenLuma_Manager.Services;
 using Microsoft.Win32;
 
 namespace GreenLuma_Manager.Utilities;
@@ -50,9 +51,9 @@ public partial class PathDetector
                 File.Exists(Path.Combine(installPath, "Steam.exe")))
                 return installPath;
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PathDetector.TryGetRegistryPath", ex);
         }
 
         return null;
@@ -117,9 +118,9 @@ public partial class PathDetector
                     return true;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PathDetector.ContainsGreenLumaFiles", ex);
         }
 
         return false;

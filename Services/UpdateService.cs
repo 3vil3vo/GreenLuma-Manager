@@ -37,8 +37,9 @@ public partial class UpdateService
             var response = await Client.GetStringAsync(GitHubApiUrl);
             return ParseUpdateInfo(response);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("UpdateService.CheckForUpdates", ex);
             return null;
         }
     }
@@ -154,8 +155,9 @@ public partial class UpdateService
 
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("UpdateService.PerformAutoUpdate", ex);
             return false;
         }
     }

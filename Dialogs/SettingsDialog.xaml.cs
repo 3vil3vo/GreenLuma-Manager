@@ -1,6 +1,8 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Navigation;
 using GreenLuma_Manager.Models;
 using GreenLuma_Manager.Services;
 using GreenLuma_Manager.Utilities;
@@ -27,8 +29,8 @@ public partial class SettingsDialog
     {
         TxtSteamPath.Text = _config.SteamPath;
         TxtGreenLumaPath.Text = _config.GreenLumaPath;
+        TxtSteamApiKey.Text = _config.SteamApiKey;
         ChkReplaceSteamAutostart.IsChecked = _config.ReplaceSteamAutostart;
-        ChkPrefetchAppList.IsChecked = _config.PrefetchAppList;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
     }
@@ -234,8 +236,8 @@ public partial class SettingsDialog
 
         _config.SteamPath = steamPath;
         _config.GreenLumaPath = greenLumaPath;
+        _config.SteamApiKey = TxtSteamApiKey.Text?.Trim() ?? string.Empty;
         _config.ReplaceSteamAutostart = ChkReplaceSteamAutostart.IsChecked.GetValueOrDefault();
-        _config.PrefetchAppList = ChkPrefetchAppList.IsChecked.GetValueOrDefault();
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
 
@@ -261,10 +263,17 @@ public partial class SettingsDialog
 
             return false;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("SettingsDialog.IsReadOnly", ex);
             return true;
         }
+    }
+
+    private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 
 

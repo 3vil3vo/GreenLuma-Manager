@@ -56,21 +56,25 @@ public class SearchService
         "https://store.steampowered.com/api/storesearch/?term={0}&l=english&cc=US";
 
     private const string SteamStoreApiUrl = "https://api.steampowered.com/IStoreService/GetAppList/v1/";
-    private const string SteamApiKey = "1DD0450A99F573693CD031EBB160907D";
     private const int BatchSize = 150;
 
+    private static string _steamApiKey = string.Empty;
     private static readonly HttpClient Client = new();
     private static List<SteamApp>? _appListCache;
     private static readonly SemaphoreSlim AppListLock = new(1, 1);
     private static readonly ConcurrentDictionary<string, GameDetails> DetailsCache = new();
-    private static DateTime _cacheExpiry = DateTime.MaxValue;
+    private static DateTime _cacheExpiry = DateTime.MinValue;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
-    private static bool _isPrefetching;
 
     static SearchService()
     {
         Client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
         Client.Timeout = TimeSpan.FromSeconds(10);
+    }
+
+    public static void SetApiKey(string apiKey)
+    {
+        _steamApiKey = apiKey ?? string.Empty;
     }
 
     private static async Task<List<Game>> SearchStoreAsync(string query)
@@ -104,14 +108,18 @@ public class SearchService
 
             return results;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("SearchService.SearchStore", ex);
             return [];
         }
     }
 
     private static async Task<List<SteamApp>> GetAppListAsync()
     {
+        if (string.IsNullOrWhiteSpace(_steamApiKey))
+            return _appListCache ?? [];
+
         if (_appListCache != null && DateTime.Now < _cacheExpiry)
             return _appListCache;
 
@@ -128,7 +136,7 @@ public class SearchService
             while (true)
             {
                 var url =
-                    $"{SteamStoreApiUrl}?key={SteamApiKey}&include_games=true&include_dlc=true&include_software=true&include_videos=true&include_hardware=true&max_results={maxResults}&last_appid={lastAppId}";
+                    $"{SteamStoreApiUrl}?key={Uri.EscapeDataString(_steamApiKey)}&include_games=true&include_dlc=true&include_software=true&include_videos=true&include_hardware=true&max_results={maxResults}&last_appid={lastAppId}";
 
                 var response = await Client.GetStringAsync(url).ConfigureAwait(false);
                 var json = JObject.Parse(response);
@@ -158,37 +166,17 @@ public class SearchService
             }
 
             _cacheExpiry = DateTime.Now.Add(CacheDuration);
-            _isPrefetching = false;
             return _appListCache;
         }
-        catch
+        catch (Exception ex)
         {
-            _isPrefetching = false;
+            LogService.LogError("SearchService.GetAppList", ex);
             return _appListCache ?? [];
         }
         finally
         {
             AppListLock.Release();
         }
-    }
-
-    public static async Task PrefetchAsync(Config config)
-    {
-        if (_isPrefetching || (_appListCache != null && DateTime.Now < _cacheExpiry) || !config.PrefetchAppList)
-            return;
-
-        _isPrefetching = true;
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await GetAppListAsync().ConfigureAwait(false);
-            }
-            catch
-            {
-                _isPrefetching = false;
-            }
-        });
     }
 
     public static async Task<List<Game>> SearchAsync(string query, int maxResults = 50)
@@ -270,8 +258,9 @@ public class SearchService
                 .. cached.Select(g => new Game { AppId = g.AppId, Name = g.Name, Type = g.Type, IconUrl = g.IconUrl })
             ];
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("SearchService.SearchAsync", ex);
             return [];
         }
     }
@@ -393,8 +382,9 @@ public class SearchService
                     results[appIdStr] = fallbackDetails;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                LogService.LogError("SearchService.FetchBatch", ex);
                 foreach (var appIdStr in batch)
                     if (!results.ContainsKey(appIdStr))
                         results[appIdStr] = new GameDetails(appIdStr, "Game", $"App {appIdStr}");

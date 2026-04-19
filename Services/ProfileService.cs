@@ -23,9 +23,9 @@ public class ProfileService
             LoadProfilesFromDirectory(profiles);
             if (profiles.Count == 0) return CreateDefaultProfile(profiles);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.LoadAll", ex);
         }
 
         return profiles;
@@ -52,9 +52,9 @@ public class ProfileService
                 var profile = DeserializeProfile(File.ReadAllText(file, Encoding.UTF8));
                 if (profile != null) profiles.Add(profile);
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("ProfileService.LoadFromDir", ex);
             }
     }
 
@@ -69,8 +69,9 @@ public class ProfileService
             var json = File.ReadAllText(filePath, Encoding.UTF8);
             return DeserializeProfile(json);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ProfileService.Load", ex);
             return null;
         }
     }
@@ -84,9 +85,9 @@ public class ProfileService
             var json = SerializeProfile(profile);
             File.WriteAllText(filePath, json, Encoding.UTF8);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.Save", ex);
         }
     }
 
@@ -100,9 +101,9 @@ public class ProfileService
             var filePath = GetProfileFilePath(profileName);
             if (File.Exists(filePath)) File.Delete(filePath);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.Delete", ex);
         }
     }
 
@@ -113,9 +114,9 @@ public class ProfileService
             var json = SerializeProfile(profile);
             File.WriteAllText(destinationPath, json, Encoding.UTF8);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.Export", ex);
         }
     }
 
@@ -126,8 +127,9 @@ public class ProfileService
             var json = File.ReadAllText(sourcePath, Encoding.UTF8);
             return DeserializeProfile(json);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ProfileService.Import", ex);
             return null;
         }
     }
@@ -144,8 +146,9 @@ public class ProfileService
         {
             return JsonSerializer.Deserialize<Profile>(json);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ProfileService.DeserializeProfile", ex);
             return null;
         }
     }
@@ -158,7 +161,9 @@ public class ProfileService
     private static string SanitizeFileName(string name)
     {
         var invalidChars = Path.GetInvalidFileNameChars();
-        return new string([.. name.Select(c => invalidChars.Contains(c) ? '_' : c)]);
+        var sanitized = new string([.. name.Select(c => invalidChars.Contains(c) ? '_' : c)]);
+        sanitized = sanitized.Replace("..", "_");
+        return Path.GetFileName(sanitized);
     }
 
     private static void TryMigrateProfilesFromOldVersion()
@@ -197,14 +202,14 @@ public class ProfileService
 
                     Save(profile);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    LogService.LogError("ProfileService.MigrateFile", ex);
                 }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.TryMigrateProfiles", ex);
         }
     }
 }

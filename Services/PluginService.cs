@@ -36,9 +36,9 @@ public class PluginService
             _pluginInfos = LoadPluginInfos();
             LoadPlugins();
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PluginService.Initialize", ex);
         }
     }
 
@@ -55,8 +55,9 @@ public class PluginService
             var json = File.ReadAllText(PluginsConfigPath, Encoding.UTF8);
             return JsonSerializer.Deserialize<List<PluginInfo>>(json) ?? [];
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("PluginService.LoadPluginInfos", ex);
             return [];
         }
     }
@@ -68,9 +69,9 @@ public class PluginService
             var json = JsonSerializer.Serialize(_pluginInfos);
             File.WriteAllText(PluginsConfigPath, json, Encoding.UTF8);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PluginService.SavePluginInfos", ex);
         }
     }
 
@@ -97,9 +98,9 @@ public class PluginService
                 instance.Initialize();
                 LoadedPlugins.Add((pluginInfo, instance, context));
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("PluginService.LoadPlugin", ex);
             }
     }
 
@@ -110,9 +111,9 @@ public class PluginService
             {
                 instance?.OnApplicationStartup();
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("PluginService.OnStartup", ex);
             }
     }
 
@@ -124,9 +125,9 @@ public class PluginService
                 instance?.OnApplicationShutdown();
                 context?.Unload();
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("PluginService.OnShutdown", ex);
             }
 
         LoadedPlugins.Clear();
@@ -202,8 +203,9 @@ public class PluginService
                 Description = instance.Description
             };
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("PluginService.ExtractManifest", ex);
             return null;
         }
         finally
@@ -226,9 +228,9 @@ public class PluginService
                     loaded.Instance?.OnApplicationShutdown();
                     loaded.Context.Unload();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    LogService.LogError("PluginService.RemovePlugin.Shutdown", ex);
                 }
 
                 LoadedPlugins.Remove(loaded);
@@ -245,14 +247,15 @@ public class PluginService
                 {
                     File.Delete(pluginPath);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    LogService.LogError("PluginService.RemovePlugin.Delete", ex);
                     MarkForDeletion(pluginPath);
                 }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PluginService.RemovePlugin", ex);
         }
     }
 
@@ -264,9 +267,9 @@ public class PluginService
             if (!list.Contains(path)) list.Add(path);
             SavePendingDeletes(list);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PluginService.MarkForDeletion", ex);
         }
     }
 
@@ -278,8 +281,9 @@ public class PluginService
             var json = File.ReadAllText(PendingDeletesPath, Encoding.UTF8);
             return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("PluginService.LoadPendingDeletes", ex);
             return new List<string>();
         }
     }
@@ -291,9 +295,9 @@ public class PluginService
             var json = JsonSerializer.Serialize(paths);
             File.WriteAllText(PendingDeletesPath, json, Encoding.UTF8);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PluginService.SavePendingDeletes", ex);
         }
     }
 
@@ -311,8 +315,9 @@ public class PluginService
                 {
                     if (File.Exists(path)) File.Delete(path);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    LogService.LogError("PluginService.CleanupDelete", ex);
                     remaining.Add(path);
                 }
 
@@ -321,9 +326,9 @@ public class PluginService
             else
                 File.Delete(PendingDeletesPath);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PluginService.CleanupPendingDeletes", ex);
         }
     }
 
@@ -347,18 +352,18 @@ public class PluginService
                         loaded.Instance?.OnApplicationShutdown();
                         loaded.Context.Unload();
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // ignored
+                        LogService.LogError("PluginService.TogglePlugin.Shutdown", ex);
                     }
 
                     LoadedPlugins.Remove(loaded);
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("PluginService.TogglePlugin", ex);
         }
     }
 
