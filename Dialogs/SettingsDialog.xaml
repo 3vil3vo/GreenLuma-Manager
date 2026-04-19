@@ -710,6 +710,35 @@
                         </Border>
 
                         <Border
+                            Margin="0,0,0,20"
+                            Padding="24"
+                            Background="{StaticResource SurfaceBg}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,20"
+                                    FontSize="12"
+                                    FontWeight="Bold"
+                                    Foreground="{StaticResource TextTertiary}"
+                                    Text="SEARCH" />
+                                <StackPanel>
+                                    <CheckBox
+                                        x:Name="ChkShowHiddenDlcs"
+                                        Content="Show Hidden DLCs"
+                                        Style="{StaticResource ChillSwitch}" />
+                                    <TextBlock
+                                        Margin="0,4,60,0"
+                                        FontSize="13"
+                                        Foreground="{StaticResource TextTertiary}"
+                                        Text="Include DLCs that are normally hidden from the Steam store in search results."
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border
                             Padding="24"
                             Background="{StaticResource SurfaceBg}"
                             BorderBrush="{StaticResource BorderBrush}"
@@ -775,6 +804,39 @@
                             FontSize="14"
                             Foreground="{StaticResource TextSecondary}"
                             Text="Dangerous actions and data management." />
+
+                        <Border
+                            Margin="0,0,0,20"
+                            Padding="24"
+                            Background="{StaticResource SurfaceBg}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock
+                                        FontSize="15"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextPrimary}"
+                                        Text="App Data Folder" />
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontSize="13"
+                                        Foreground="{StaticResource TextSecondary}"
+                                        Text="Open the folder where GreenLuma Manager stores its configuration and profiles."
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    Click="OpenAppData_Click"
+                                    Content="Open"
+                                    Style="{StaticResource ModernBtn}" />
+                            </Grid>
+                        </Border>
 
                         <Border
                             Margin="0,0,0,20"

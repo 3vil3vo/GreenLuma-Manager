@@ -29,6 +29,8 @@ public class Config
 
     [DataMember] public string SteamApiKey { get; set; } = string.Empty;
 
+    [DataMember] public bool ShowHiddenDlcs { get; set; }
+
     [DataMember] public double WindowWidth { get; set; }
 
     [DataMember] public double WindowHeight { get; set; }

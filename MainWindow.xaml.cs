@@ -427,8 +427,8 @@ public partial class MainWindow
         _searchResults.Clear();
         _lastAddAllGames = null;
         if (BtnAddAll != null) BtnAddAll.Content = "ADD ALL";
+        FilterAll.IsChecked = true;
         BtnHideAdded.IsChecked = false;
-        BtnHideAdded.Visibility = Visibility.Collapsed;
 
         var existingIds = new HashSet<string>(_games.Select(g => g.AppId));
         foreach (var game in results)
@@ -447,7 +447,6 @@ public partial class MainWindow
 
         TxtResultCount.Text = _searchResults.Count.ToString();
         PnlResultsHeader.Visibility = Visibility.Visible;
-        BtnHideAdded.Visibility = Visibility.Visible;
         _loadingDotsTimer?.Stop();
 
         var fadeOut = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(150));
@@ -495,13 +494,30 @@ public partial class MainWindow
             BtnAddAll.Visibility = visibility;
     }
 
-    private void HideAdded_Changed(object sender, RoutedEventArgs e)
+    private void ResultFilter_Changed(object sender, RoutedEventArgs e)
     {
+        if (BtnHideAdded == null || TxtResultCount == null) return;
+
         var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_searchResults);
-        if (BtnHideAdded.IsChecked == true)
-            view.Filter = item => item is Game g && !g.IsInProfile;
-        else
-            view.Filter = null;
+        view.Filter = item =>
+        {
+            if (item is not Game g) return false;
+
+            if (BtnHideAdded.IsChecked == true && g.IsInProfile)
+                return false;
+
+            if (FilterAll.IsChecked == true)
+                return true;
+            if (FilterGames.IsChecked == true)
+                return string.Equals(g.Type, "Game", StringComparison.OrdinalIgnoreCase);
+            if (FilterDlc.IsChecked == true)
+                return string.Equals(g.Type, "DLC", StringComparison.OrdinalIgnoreCase);
+            if (FilterSoftware.IsChecked == true)
+                return !string.Equals(g.Type, "Game", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(g.Type, "DLC", StringComparison.OrdinalIgnoreCase);
+
+            return true;
+        };
 
         TxtResultCount.Text = view.Cast<object>().Count().ToString();
     }
@@ -1649,6 +1665,8 @@ public partial class MainWindow
     {
         if (_config == null)
         {
+            TxtGreenLumaVersionStatus.Visibility = Visibility.Collapsed;
+            TxtVersionDot.Visibility = Visibility.Collapsed;
             SetStatusIndicator(Resources["Danger"] as Brush ?? Brushes.Red, "Not Configured");
             return;
         }
@@ -1658,8 +1676,23 @@ public partial class MainWindow
 
         if (string.IsNullOrWhiteSpace(steamPath) || string.IsNullOrWhiteSpace(greenLumaPath))
         {
+            TxtGreenLumaVersionStatus.Visibility = Visibility.Collapsed;
+            TxtVersionDot.Visibility = Visibility.Collapsed;
             SetStatusIndicator(Resources["Danger"] as Brush ?? Brushes.Red, "Not Configured");
             return;
+        }
+
+        var glVersion = GreenLumaService.DetectVersion(greenLumaPath);
+        if (glVersion != null)
+        {
+            TxtGreenLumaVersionStatus.Text = $"GL v{glVersion}";
+            TxtGreenLumaVersionStatus.Visibility = Visibility.Visible;
+            TxtVersionDot.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            TxtGreenLumaVersionStatus.Visibility = Visibility.Collapsed;
+            TxtVersionDot.Visibility = Visibility.Collapsed;
         }
 
         var (isValid, isStealthOnly, _) = GreenLumaService.ValidateInstallation(greenLumaPath);

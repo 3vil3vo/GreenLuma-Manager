@@ -107,6 +107,43 @@ public partial class GreenLumaService
                Directory.GetFiles(appListPath, "*.txt").Length > 0;
     }
 
+    public static string? DetectVersion(string greenLumaPath)
+    {
+        if (string.IsNullOrWhiteSpace(greenLumaPath) || !Directory.Exists(greenLumaPath))
+            return null;
+
+        try
+        {
+            var dllFiles = Directory.GetFiles(greenLumaPath, "GreenLuma_*_x*.dll");
+            string? primaryDll = null;
+
+            foreach (var file in dllFiles)
+            {
+                var match = GreenLumaDllRegex().Match(Path.GetFileName(file));
+                if (!match.Success) continue;
+
+                primaryDll = file;
+                if (string.Equals(match.Groups[2].Value, "64", StringComparison.OrdinalIgnoreCase))
+                    break;
+            }
+
+            if (primaryDll == null) return null;
+
+            var info = FileVersionInfo.GetVersionInfo(primaryDll);
+            if (!string.IsNullOrWhiteSpace(info.FileVersion))
+                return info.FileVersion.Trim();
+            if (!string.IsNullOrWhiteSpace(info.ProductVersion))
+                return info.ProductVersion.Trim();
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("GreenLumaService.DetectVersion", ex);
+            return null;
+        }
+    }
+
     public static async Task<int> GenerateAppListAsync(Profile? profile, Config? config)
     {
         if (profile == null || config == null || string.IsNullOrWhiteSpace(config.GreenLumaPath))

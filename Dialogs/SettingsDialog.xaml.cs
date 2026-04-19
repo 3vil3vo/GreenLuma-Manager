@@ -35,6 +35,7 @@ public partial class SettingsDialog
         ChkStartSteamMinimized.IsChecked = _config.StartSteamMinimized;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
+        ChkShowHiddenDlcs.IsChecked = _config.ShowHiddenDlcs;
     }
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -83,7 +84,10 @@ public partial class SettingsDialog
         if (!string.IsNullOrWhiteSpace(TxtGreenLumaPath.Text) && Directory.Exists(TxtGreenLumaPath.Text))
             dialog.InitialDirectory = TxtGreenLumaPath.Text;
 
-        if (dialog.ShowDialog() == true) TxtGreenLumaPath.Text = dialog.FolderName;
+        if (dialog.ShowDialog() == true)
+        {
+            TxtGreenLumaPath.Text = dialog.FolderName;
+        }
     }
 
     private void AutoDetect_Click(object sender, RoutedEventArgs e)
@@ -130,6 +134,19 @@ public partial class SettingsDialog
         CustomMessageBox.Show("All data has been wiped. The application will now close.", "Complete",
             icon: MessageBoxImage.Asterisk);
         Application.Current.Shutdown();
+    }
+
+    private void OpenAppData_Click(object sender, RoutedEventArgs e)
+    {
+        var appDataDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "GLM_Manager");
+
+        if (Directory.Exists(appDataDir))
+            Process.Start(new ProcessStartInfo { FileName = appDataDir, UseShellExecute = true });
+        else
+            CustomMessageBox.Show("App data folder does not exist yet.", "Info",
+                icon: MessageBoxImage.Information);
     }
 
     private async void RestartSteam_Click(object sender, RoutedEventArgs e)
@@ -289,6 +306,7 @@ public partial class SettingsDialog
         _config.StartSteamMinimized = ChkStartSteamMinimized.IsChecked.GetValueOrDefault();
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
+        _config.ShowHiddenDlcs = ChkShowHiddenDlcs.IsChecked.GetValueOrDefault();
 
         ConfigService.Save(_config);
         AutostartManager.ManageAutostart(_config.ReplaceSteamAutostart, _config);
