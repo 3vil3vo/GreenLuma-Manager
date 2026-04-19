@@ -53,6 +53,20 @@ public class Game : INotifyPropertyChanged
     [DataMember] public List<string> Depots { get; set; } = [];
 
     [IgnoreDataMember]
+    public bool IsInProfile
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                OnPropertyChanged(nameof(IsInProfile));
+            }
+        }
+    }
+
+    [IgnoreDataMember]
     public bool IsEditing
     {
         get;

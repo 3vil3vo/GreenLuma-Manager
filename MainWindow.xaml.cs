@@ -13,6 +13,7 @@ using GreenLuma_Manager.Dialogs;
 using GreenLuma_Manager.Models;
 using GreenLuma_Manager.Plugins;
 using GreenLuma_Manager.Services;
+using GreenLuma_Manager.Utilities;
 using Microsoft.Win32;
 
 namespace GreenLuma_Manager;
@@ -20,6 +21,7 @@ namespace GreenLuma_Manager;
 public partial class MainWindow
 {
     public const string Version = "RC2.12";
+    private const int ToastDurationMs = 6000;
 
     private readonly ObservableCollection<Game> _games;
     private readonly ObservableCollection<string> _profiles;
@@ -49,6 +51,7 @@ public partial class MainWindow
             new RelayCommand(_ => LaunchGreenlumaButton_Click(BtnLaunchGreenluma, new RoutedEventArgs()));
         ToggleStealthCommand =
             new RelayCommand(_ => TglStealthMode.IsChecked = !TglStealthMode.IsChecked.GetValueOrDefault());
+        CycleProfileCommand = new RelayCommand(_ => CycleProfile());
 
         DataContext = this;
         DgResults.ItemsSource = _searchResults;
@@ -68,6 +71,7 @@ public partial class MainWindow
     public ICommand GenerateApplistCommand { get; }
     public ICommand LaunchGreenlumaCommand { get; }
     public ICommand ToggleStealthCommand { get; }
+    public ICommand CycleProfileCommand { get; }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
@@ -222,7 +226,7 @@ public partial class MainWindow
 
     private void GitHubButton_Click(object sender, RoutedEventArgs e)
     {
-        LaunchBrowser("https://youtu.be/dQw4w9WgXcQ");
+        LaunchBrowser("https://github.com/3vil3vo/GreenLuma-Manager");
     }
 
     private async void SettingsButton_Click(object? sender, RoutedEventArgs? e)
@@ -379,12 +383,12 @@ public partial class MainWindow
 
         ShowSearchLoading();
 
-        var results = await Task.Run(() => SearchService.SearchAsync(query), token).ConfigureAwait(true);
+        var results = await Task.Run(() => SearchService.SearchAsync(query, ct: token), token).ConfigureAwait(true);
 
         if (token.IsCancellationRequested)
             return;
 
-        await SearchService.FetchIconUrlsAsync(results).ConfigureAwait(true);
+        await SearchService.FetchIconUrlsAsync(results, token).ConfigureAwait(true);
 
         if (token.IsCancellationRequested)
             return;
@@ -424,7 +428,12 @@ public partial class MainWindow
         _lastAddAllGames = null;
         if (BtnAddAll != null) BtnAddAll.Content = "ADD ALL";
 
-        foreach (var game in results) _searchResults.Add(game);
+        var existingIds = new HashSet<string>(_games.Select(g => g.AppId));
+        foreach (var game in results)
+        {
+            game.IsInProfile = existingIds.Contains(game.AppId);
+            _searchResults.Add(game);
+        }
 
         DgResults.Items.SortDescriptions.Clear();
 
@@ -570,6 +579,7 @@ public partial class MainWindow
         };
 
         _games.Add(newGame);
+        result.IsInProfile = true;
         ShowToast("Added " + result.Name);
         SaveCurrentProfile();
         UpdateGameListState();
@@ -639,17 +649,8 @@ public partial class MainWindow
     {
         try
         {
-            if (_profileLoadCts != null)
-            {
-                _profileLoadCts.Cancel();
-
-                var oldCts = _profileLoadCts;
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(100, oldCts.Token);
-                    oldCts.Dispose();
-                }, oldCts.Token);
-            }
+            _profileLoadCts?.Cancel();
+            _profileLoadCts?.Dispose();
 
             _profileLoadCts = new CancellationTokenSource();
             var token = _profileLoadCts.Token;
@@ -955,143 +956,10 @@ public partial class MainWindow
             if (confirmResult != MessageBoxResult.Yes) return;
 
             var totalFound = newAppIds.Count;
-            ShowToast($"Importing {totalFound} item(s)...");
+            var progress = new Progress<string>(msg => ShowToast(msg));
 
-            var gameLikeAppIds = newAppIds.Where(id => id.EndsWith('0')).ToList();
-
-            var allFoundDepotIds = new HashSet<string>();
-            var packageInfos = new ConcurrentDictionary<string, AppPackageInfo>();
-
-            var semaphore = new SemaphoreSlim(6);
-            var tasks = new List<Task>();
-
-            foreach (var id in gameLikeAppIds)
-            {
-                await semaphore.WaitAsync().ConfigureAwait(true);
-                tasks.Add(Task.Run(async () =>
-                {
-                    try
-                    {
-                        var info = await DepotService.FetchAppPackageInfoAsync(id).ConfigureAwait(false);
-                        if (info != null)
-                        {
-                            packageInfos[id] = info;
-
-                            foreach (var depotId in info.Depots) allFoundDepotIds.Add(depotId);
-
-                            foreach (var depotList in info.DlcDepots.Values)
-                            foreach (var depotId in depotList)
-                                allFoundDepotIds.Add(depotId);
-                        }
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }));
-            }
-
-            await Task.WhenAll(tasks).ConfigureAwait(true);
-            tasks.Clear();
-
-            var mainAppIdsToCreate = newAppIds
-                .Where(id => !allFoundDepotIds.Contains(id))
-                .ToList();
-
-            var importedGames = new ConcurrentBag<Game>();
-
-            foreach (var id in mainAppIdsToCreate)
-            {
-                await semaphore.WaitAsync().ConfigureAwait(true);
-                tasks.Add(Task.Run(async () =>
-                {
-                    try
-                    {
-                        var info = await DepotService.FetchAppPackageInfoAsync(id).ConfigureAwait(false);
-                        if (info == null) return;
-
-                        var game = new Game { AppId = id, Name = string.Empty, Type = "Game" };
-
-                        await SearchService.PopulateGameDetailsAsync(game).ConfigureAwait(false);
-
-                        List<string>? depotsToAssign = null;
-
-                        var parentGameInfo = packageInfos.Values.FirstOrDefault(p => p.DlcAppIds.Contains(id));
-
-                        if (parentGameInfo != null)
-                        {
-                            if (parentGameInfo.DlcDepots.TryGetValue(id, out var dlcDepots)) depotsToAssign = dlcDepots;
-                        }
-                        else if (packageInfos.TryGetValue(id, out var selfInfo))
-                        {
-                            if (selfInfo.Depots.Count > 0)
-                                depotsToAssign = selfInfo.Depots;
-                            else if (selfInfo.DlcDepots.TryGetValue(id, out var dlcDepots)) depotsToAssign = dlcDepots;
-                        }
-
-                        if (depotsToAssign != null)
-                            game.Depots = depotsToAssign
-                                .Where(depotId => newAppIds.Contains(depotId))
-                                .ToList();
-
-                        if (!string.IsNullOrWhiteSpace(game.IconUrl))
-                        {
-                            var path = await IconCacheService.DownloadAndCacheIconAsync(game.AppId, game.IconUrl)
-                                .ConfigureAwait(false);
-                            if (!string.IsNullOrEmpty(path)) game.IconUrl = path;
-                        }
-
-                        importedGames.Add(game);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogService.LogError("MainWindow.LoadAppListImport", ex);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }));
-            }
-
-            await Task.WhenAll(tasks).ConfigureAwait(true);
-
-            var depotsAddedCount = 0;
-            foreach (var depotId in newAppIds.Where(id => allFoundDepotIds.Contains(id)))
-            {
-                string? parentAppId = null;
-                foreach (var info in packageInfos.Values)
-                {
-                    if (info.Depots.Contains(depotId))
-                    {
-                        parentAppId = info.AppId;
-                        break;
-                    }
-
-                    if (parentAppId != null) break;
-
-                    foreach (var dlcDepotPair in info.DlcDepots)
-                        if (dlcDepotPair.Value.Contains(depotId))
-                        {
-                            parentAppId = dlcDepotPair.Key;
-                            break;
-                        }
-
-                    if (parentAppId != null) break;
-                }
-
-                if (parentAppId != null)
-                {
-                    var parentGame = _games.FirstOrDefault(g => g.AppId == parentAppId) ??
-                                     importedGames.FirstOrDefault(g => g.AppId == parentAppId);
-
-                    if (parentGame != null && !parentGame.Depots.Contains(depotId))
-                    {
-                        parentGame.Depots.Add(depotId);
-                        depotsAddedCount++;
-                    }
-                }
-            }
+            var (importedGames, depotsAddedCount) =
+                await ResolveAndImportAppIdsAsync(newAppIds, _games, progress);
 
             foreach (var game in importedGames.OrderBy(g => g.Name)) _games.Add(game);
 
@@ -1395,7 +1263,7 @@ public partial class MainWindow
 
         var fadeOut = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(300))
         {
-            BeginTime = TimeSpan.FromMilliseconds(6000)
+            BeginTime = TimeSpan.FromMilliseconds(ToastDurationMs)
         };
         Storyboard.SetTarget(fadeOut, Toast);
         Storyboard.SetTargetProperty(fadeOut, new PropertyPath(OpacityProperty));
@@ -1412,11 +1280,167 @@ public partial class MainWindow
 
     private static void LaunchBrowser(string url)
     {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+            return;
+
         Process.Start(new ProcessStartInfo
         {
             FileName = url,
             UseShellExecute = true
         });
+    }
+
+    private async Task<(ConcurrentBag<Game> Games, int DepotsAdded)> ResolveAndImportAppIdsAsync(
+        List<string> newAppIds,
+        IEnumerable<Game> existingGames,
+        IProgress<string>? progress = null)
+    {
+        var gameLikeAppIds = newAppIds.Where(id => id.EndsWith('0')).ToList();
+
+        var allFoundDepotIds = new HashSet<string>();
+        var packageInfos = new ConcurrentDictionary<string, AppPackageInfo>();
+
+        var semaphore = new SemaphoreSlim(6);
+        var tasks = new List<Task>();
+        var resolvedCount = 0;
+
+        progress?.Report($"Resolving depots... 0/{gameLikeAppIds.Count}");
+
+        foreach (var id in gameLikeAppIds)
+        {
+            await semaphore.WaitAsync().ConfigureAwait(true);
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    var info = await DepotService.FetchAppPackageInfoAsync(id).ConfigureAwait(false);
+                    if (info != null)
+                    {
+                        packageInfos[id] = info;
+                        foreach (var depotId in info.Depots) allFoundDepotIds.Add(depotId);
+                        foreach (var depotList in info.DlcDepots.Values)
+                        foreach (var depotId in depotList)
+                            allFoundDepotIds.Add(depotId);
+                    }
+
+                    var count = Interlocked.Increment(ref resolvedCount);
+                    progress?.Report($"Resolving depots... {count}/{gameLikeAppIds.Count}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }));
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(true);
+        tasks.Clear();
+
+        var mainAppIdsToCreate = newAppIds
+            .Where(id => !allFoundDepotIds.Contains(id))
+            .ToList();
+
+        var importedGames = new ConcurrentBag<Game>();
+        var importedCount = 0;
+
+        progress?.Report($"Importing games... 0/{mainAppIdsToCreate.Count}");
+
+        foreach (var id in mainAppIdsToCreate)
+        {
+            await semaphore.WaitAsync().ConfigureAwait(true);
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    var info = await DepotService.FetchAppPackageInfoAsync(id).ConfigureAwait(false);
+                    if (info == null) return;
+
+                    var game = new Game { AppId = id, Name = string.Empty, Type = "Game" };
+                    await SearchService.PopulateGameDetailsAsync(game).ConfigureAwait(false);
+
+                    List<string>? depotsToAssign = null;
+                    var parentGameInfo = packageInfos.Values.FirstOrDefault(p => p.DlcAppIds.Contains(id));
+
+                    if (parentGameInfo != null)
+                    {
+                        if (parentGameInfo.DlcDepots.TryGetValue(id, out var dlcDepots)) depotsToAssign = dlcDepots;
+                    }
+                    else if (packageInfos.TryGetValue(id, out var selfInfo))
+                    {
+                        if (selfInfo.Depots.Count > 0)
+                            depotsToAssign = selfInfo.Depots;
+                        else if (selfInfo.DlcDepots.TryGetValue(id, out var dlcDepots)) depotsToAssign = dlcDepots;
+                    }
+
+                    if (depotsToAssign != null)
+                        game.Depots = depotsToAssign
+                            .Where(depotId => newAppIds.Contains(depotId))
+                            .ToList();
+
+                    if (!string.IsNullOrWhiteSpace(game.IconUrl))
+                    {
+                        var path = await IconCacheService.DownloadAndCacheIconAsync(game.AppId, game.IconUrl)
+                            .ConfigureAwait(false);
+                        if (!string.IsNullOrEmpty(path)) game.IconUrl = path;
+                    }
+
+                    importedGames.Add(game);
+
+                    var count = Interlocked.Increment(ref importedCount);
+                    progress?.Report($"Importing games... {count}/{mainAppIdsToCreate.Count}");
+                }
+                catch (Exception ex)
+                {
+                    LogService.LogError("MainWindow.ResolveAndImport", ex);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }));
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(true);
+
+        var depotsAddedCount = 0;
+        var allExisting = existingGames.Concat(importedGames);
+
+        foreach (var depotId in newAppIds.Where(id => allFoundDepotIds.Contains(id)))
+        {
+            string? parentAppId = null;
+            foreach (var info in packageInfos.Values)
+            {
+                if (info.Depots.Contains(depotId))
+                {
+                    parentAppId = info.AppId;
+                    break;
+                }
+
+                if (parentAppId != null) break;
+
+                foreach (var dlcDepotPair in info.DlcDepots)
+                    if (dlcDepotPair.Value.Contains(depotId))
+                    {
+                        parentAppId = dlcDepotPair.Key;
+                        break;
+                    }
+
+                if (parentAppId != null) break;
+            }
+
+            if (parentAppId != null)
+            {
+                var parentGame = allExisting.FirstOrDefault(g => g.AppId == parentAppId);
+                if (parentGame != null && !parentGame.Depots.Contains(depotId))
+                {
+                    parentGame.Depots.Add(depotId);
+                    depotsAddedCount++;
+                }
+            }
+        }
+
+        return (importedGames, depotsAddedCount);
     }
 
     private async Task ImportExistingAppListAsync()
@@ -1482,147 +1506,19 @@ public partial class MainWindow
         }
 
         var totalFound = newAppIds.Count;
+        var progress = new Progress<string>(msg => ShowToast(msg));
 
-        var gameLikeAppIds = newAppIds.Where(id => id.EndsWith('0')).ToList();
+        var (importedGames, depotsAddedCount) =
+            await ResolveAndImportAppIdsAsync(newAppIds, defaultProfile.Games, progress);
 
-        var allFoundDepotIds = new HashSet<string>();
-        var packageInfos = new ConcurrentDictionary<string, AppPackageInfo>();
-
-        var semaphore = new SemaphoreSlim(6);
-        var tasks = new List<Task>();
-
-        foreach (var id in gameLikeAppIds)
-        {
-            await semaphore.WaitAsync().ConfigureAwait(true);
-            tasks.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    var info = await DepotService.FetchAppPackageInfoAsync(id).ConfigureAwait(false);
-                    if (info != null)
-                    {
-                        packageInfos[id] = info;
-
-                        foreach (var depotId in info.Depots) allFoundDepotIds.Add(depotId);
-
-                        foreach (var depotList in info.DlcDepots.Values)
-                        foreach (var depotId in depotList)
-                            allFoundDepotIds.Add(depotId);
-                    }
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            }));
-        }
-
-        await Task.WhenAll(tasks).ConfigureAwait(true);
-        tasks.Clear();
-
-        var mainAppIdsToCreate = newAppIds
-            .Where(id => !allFoundDepotIds.Contains(id))
-            .ToList();
-
-        var newGames = new ConcurrentBag<Game>();
-
-        foreach (var id in mainAppIdsToCreate)
-        {
-            await semaphore.WaitAsync().ConfigureAwait(true);
-            tasks.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    var info = await DepotService.FetchAppPackageInfoAsync(id).ConfigureAwait(false);
-                    if (info == null) return;
-
-                    var game = new Game { AppId = id, Name = string.Empty, Type = "Game" };
-
-                    await SearchService.PopulateGameDetailsAsync(game).ConfigureAwait(false);
-
-                    List<string>? depotsToAssign = null;
-
-                    var parentGameInfo = packageInfos.Values.FirstOrDefault(p => p.DlcAppIds.Contains(id));
-
-                    if (parentGameInfo != null)
-                    {
-                        if (parentGameInfo.DlcDepots.TryGetValue(id, out var dlcDepots)) depotsToAssign = dlcDepots;
-                    }
-                    else if (packageInfos.TryGetValue(id, out var selfInfo))
-                    {
-                        if (selfInfo.Depots.Count > 0)
-                            depotsToAssign = selfInfo.Depots;
-                        else if (selfInfo.DlcDepots.TryGetValue(id, out var dlcDepots)) depotsToAssign = dlcDepots;
-                    }
-
-                    if (depotsToAssign != null)
-                        game.Depots = depotsToAssign
-                            .Where(depotId => newAppIds.Contains(depotId))
-                            .ToList();
-
-                    if (!string.IsNullOrWhiteSpace(game.IconUrl))
-                    {
-                        var path = await IconCacheService.DownloadAndCacheIconAsync(game.AppId, game.IconUrl)
-                            .ConfigureAwait(false);
-                        if (!string.IsNullOrEmpty(path)) game.IconUrl = path;
-                    }
-
-                    newGames.Add(game);
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            }));
-        }
-
-        await Task.WhenAll(tasks).ConfigureAwait(true);
-
-        var depotsAddedCount = 0;
-        foreach (var depotId in newAppIds.Where(id => allFoundDepotIds.Contains(id)))
-        {
-            string? parentAppId = null;
-            foreach (var info in packageInfos.Values)
-            {
-                if (info.Depots.Contains(depotId))
-                {
-                    parentAppId = info.AppId;
-                    break;
-                }
-
-                if (parentAppId != null) break;
-
-                foreach (var dlcDepotPair in info.DlcDepots)
-                    if (dlcDepotPair.Value.Contains(depotId))
-                    {
-                        parentAppId = dlcDepotPair.Key;
-                        break;
-                    }
-
-                if (parentAppId != null) break;
-            }
-
-            if (parentAppId != null)
-            {
-                var parentGame = _games.FirstOrDefault(g => g.AppId == parentAppId) ??
-                                 newGames.FirstOrDefault(g => g.AppId == parentAppId);
-
-                if (parentGame != null && !parentGame.Depots.Contains(depotId))
-                {
-                    parentGame.Depots.Add(depotId);
-                    depotsAddedCount++;
-                }
-            }
-        }
-
-        foreach (var game in newGames) defaultProfile.Games.Add(game);
+        foreach (var game in importedGames) defaultProfile.Games.Add(game);
 
         ProfileService.Save(defaultProfile);
 
         if (CmbProfile.SelectedItem?.ToString() == "default") LoadProfile("default");
 
-        var totalDepotsIncluded = newGames.Sum(g => g.Depots.Count) + depotsAddedCount;
-        ShowToast($"Added {newGames.Count} Games/DLCs & {totalDepotsIncluded} Depots from {totalFound} IDs");
+        var totalDepotsIncluded = importedGames.Sum(g => g.Depots.Count) + depotsAddedCount;
+        ShowToast($"Added {importedGames.Count} Games/DLCs & {totalDepotsIncluded} Depots from {totalFound} IDs");
 
         if (showSteamWarning)
             CustomMessageBox.Show(
@@ -1861,24 +1757,41 @@ public partial class MainWindow
         }
     }
 
-    private class RelayCommand(Action<object?> execute, Func<object?, bool>? canExecute = null) : ICommand
+    private void CycleProfile()
     {
-        private readonly Action<object?> _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        var realProfiles = _profiles.Where(p => p != "__empty__").ToList();
+        if (realProfiles.Count <= 1) return;
 
-        public bool CanExecute(object? parameter)
-        {
-            return canExecute?.Invoke(parameter) ?? true;
-        }
+        var currentIndex = realProfiles.IndexOf(CmbProfile.SelectedItem?.ToString() ?? string.Empty);
+        var nextIndex = (currentIndex + 1) % realProfiles.Count;
+        CmbProfile.SelectedItem = realProfiles[nextIndex];
+    }
 
-        public void Execute(object? parameter)
-        {
-            _execute(parameter);
-        }
+    private void MoveGameUp_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem menuItem ||
+            menuItem.Parent is not ContextMenu ctx ||
+            ctx.PlacementTarget is not FrameworkElement fe ||
+            fe.DataContext is not Game game)
+            return;
 
-        public event EventHandler? CanExecuteChanged
-        {
-            add => CommandManager.RequerySuggested += value;
-            remove => CommandManager.RequerySuggested -= value;
-        }
+        var index = _games.IndexOf(game);
+        if (index <= 0) return;
+        _games.Move(index, index - 1);
+        SaveCurrentProfile();
+    }
+
+    private void MoveGameDown_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem menuItem ||
+            menuItem.Parent is not ContextMenu ctx ||
+            ctx.PlacementTarget is not FrameworkElement fe ||
+            fe.DataContext is not Game game)
+            return;
+
+        var index = _games.IndexOf(game);
+        if (index < 0 || index >= _games.Count - 1) return;
+        _games.Move(index, index + 1);
+        SaveCurrentProfile();
     }
 }

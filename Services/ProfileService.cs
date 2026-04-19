@@ -2,7 +2,6 @@
 using System.Text;
 using System.Text.Json;
 using GreenLuma_Manager.Models;
-using Newtonsoft.Json.Linq;
 
 namespace GreenLuma_Manager.Services;
 
@@ -210,40 +209,57 @@ public class ProfileService
         {
             if (!Directory.Exists(ProfilesDir)) return;
 
+            var migratedFlag = Path.Combine(ProfilesDir, ".migrated");
+            if (File.Exists(migratedFlag)) return;
+
             var filesToMigrate = Directory.GetFiles(ProfilesDir, "*.json");
+            var anyMigrated = false;
 
             foreach (var file in filesToMigrate)
                 try
                 {
                     var rc3Json = File.ReadAllText(file, Encoding.UTF8);
-                    var rc3Data = JObject.Parse(rc3Json);
+                    using var doc = JsonDocument.Parse(rc3Json);
+                    var root = doc.RootElement;
 
-                    if (rc3Data["games"] is not JArray gamesArray || gamesArray.Count == 0) continue;
+                    if (!root.TryGetProperty("games", out var gamesArray) ||
+                        gamesArray.ValueKind != JsonValueKind.Array ||
+                        gamesArray.GetArrayLength() == 0) continue;
 
-                    if (gamesArray[0] is not JObject firstGame || firstGame["id"] == null) continue;
+                    var firstGame = gamesArray[0];
+                    if (firstGame.ValueKind != JsonValueKind.Object ||
+                        !firstGame.TryGetProperty("id", out _)) continue;
+
+                    var profileName = root.TryGetProperty("name", out var nameProp)
+                        ? nameProp.GetString() ?? "default"
+                        : "default";
 
                     var profile = new Profile
                     {
-                        Name = rc3Data["name"]?.ToString() ?? "default",
+                        Name = profileName,
                         Games =
                         [
-                            .. gamesArray
-                                .Select(gameToken => new Game
+                            .. gamesArray.EnumerateArray()
+                                .Select(gameElem => new Game
                                 {
-                                    AppId = gameToken["id"]?.ToString() ?? string.Empty,
-                                    Name = gameToken["name"]?.ToString() ?? string.Empty,
-                                    Type = gameToken["type"]?.ToString() ?? "Game"
+                                    AppId = gameElem.TryGetProperty("id", out var idProp) ? idProp.ToString() : string.Empty,
+                                    Name = gameElem.TryGetProperty("name", out var nProp) ? nProp.GetString() ?? string.Empty : string.Empty,
+                                    Type = gameElem.TryGetProperty("type", out var tProp) ? tProp.GetString() ?? "Game" : "Game"
                                 })
                                 .Where(g => !string.IsNullOrEmpty(g.AppId))
                         ]
                     };
 
                     Save(profile);
+                    anyMigrated = true;
                 }
                 catch (Exception ex)
                 {
                     LogService.LogError("ProfileService.MigrateFile", ex);
                 }
+
+            if (anyMigrated)
+                File.WriteAllText(migratedFlag, string.Empty);
         }
         catch (Exception ex)
         {

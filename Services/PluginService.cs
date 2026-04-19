@@ -81,7 +81,11 @@ public class PluginService
             try
             {
                 var pluginPath = Path.Combine(PluginsDir, pluginInfo.FileName);
-                if (!File.Exists(pluginPath)) continue;
+                if (!File.Exists(pluginPath))
+                {
+                    LogService.LogWarning("PluginService", $"Plugin file not found: {pluginInfo.FileName}");
+                    continue;
+                }
 
                 var context = new AssemblyLoadContext($"Plugin_{pluginInfo.Id}", true);
                 var assembly = context.LoadFromAssemblyPath(pluginPath);

@@ -15,6 +15,6 @@ public static class DepotService
         if (!uint.TryParse(appId, out var id))
             return null;
 
-        return await SteamService.Instance.GetAppPackageInfoAsync(id);
+        return await SteamService.Instance.GetAppPackageInfoAsync(id).ConfigureAwait(false);
     }
 }

@@ -10,8 +10,8 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <Version>1.0.0-rc2.12</Version>
-    <FileVersion>0.0.0.2</FileVersion>
-    <AssemblyVersion>0.0.0.2</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <Copyright>Copyright © 3vil3vo 2026</Copyright>
     <PackageIcon>icon.ico</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -27,7 +27,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="SteamKit2" Version="3.3.1" />
   </ItemGroup>
 

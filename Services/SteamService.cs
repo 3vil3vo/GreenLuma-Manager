@@ -248,10 +248,13 @@ public sealed class SteamService : IDisposable
         _isConnected = false;
         _isLoggedOn = false;
 
-        Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(_ =>
+        if (!_isRunning || _cts.Token.IsCancellationRequested) return;
+
+        LogService.LogWarning("SteamService", "Disconnected from Steam, reconnecting in 5 seconds...");
+        Task.Delay(TimeSpan.FromSeconds(5), _cts.Token).ContinueWith(_ =>
         {
             if (_isRunning) _steamClient.Connect();
-        });
+        }, _cts.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
     }
 
     private void OnLoggedOn(SteamUser.LoggedOnCallback callback)

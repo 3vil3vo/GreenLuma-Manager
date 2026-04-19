@@ -1004,6 +1004,10 @@
             Key="S"
             Command="{Binding ToggleStealthCommand}"
             Modifiers="Control+Shift" />
+        <KeyBinding
+            Key="Tab"
+            Command="{Binding CycleProfileCommand}"
+            Modifiers="Control" />
     </Window.InputBindings>
 
     <Grid>
@@ -1336,9 +1340,20 @@
                                                 <DataTemplate>
                                                     <Button
                                                         Click="AddGameButton_Click"
-                                                        Content="ADD"
-                                                        Style="{StaticResource AddBtn}"
-                                                        Tag="{Binding}" />
+                                                        Tag="{Binding}">
+                                                        <Button.Style>
+                                                            <Style BasedOn="{StaticResource AddBtn}" TargetType="Button">
+                                                                <Setter Property="Content" Value="ADD" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsInProfile}" Value="True">
+                                                                        <Setter Property="Content" Value="ADDED" />
+                                                                        <Setter Property="Opacity" Value="0.5" />
+                                                                        <Setter Property="IsEnabled" Value="False" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -1626,6 +1641,36 @@
                                                     Padding="16,12"
                                                     Background="{StaticResource SurfaceBg}"
                                                     CornerRadius="8">
+                                                    <Border.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem
+                                                                Click="MoveGameUp_Click"
+                                                                Header="Move Up"
+                                                                Style="{DynamicResource ContextItem}">
+                                                                <MenuItem.Icon>
+                                                                    <Path
+                                                                        Width="16"
+                                                                        Height="16"
+                                                                        Data="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"
+                                                                        Fill="{DynamicResource TextSecond}"
+                                                                        Stretch="Uniform" />
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                            <MenuItem
+                                                                Click="MoveGameDown_Click"
+                                                                Header="Move Down"
+                                                                Style="{DynamicResource ContextItem}">
+                                                                <MenuItem.Icon>
+                                                                    <Path
+                                                                        Width="16"
+                                                                        Height="16"
+                                                                        Data="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"
+                                                                        Fill="{DynamicResource TextSecond}"
+                                                                        Stretch="Uniform" />
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                        </ContextMenu>
+                                                    </Border.ContextMenu>
                                                     <Border.Style>
                                                         <Style TargetType="Border">
                                                             <Style.Triggers>

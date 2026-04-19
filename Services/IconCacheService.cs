@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Net.Http;
 using System.Windows.Media.Imaging;
 
 namespace GreenLuma_Manager.Services;
@@ -10,15 +9,6 @@ public class IconCacheService
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "GLM_Manager",
         "icons");
-
-    private static readonly HttpClient Client = new();
-
-    static IconCacheService()
-    {
-        Client.DefaultRequestHeaders.Add("User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-        Client.Timeout = TimeSpan.FromSeconds(10);
-    }
 
     public static async Task<string?> DownloadAndCacheIconAsync(string appId, string iconUrl)
     {
@@ -227,7 +217,7 @@ public class IconCacheService
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
-                using var resp = await Client.GetAsync(url, cts.Token).ConfigureAwait(false);
+                using var resp = await HttpClientProvider.Default.GetAsync(url, cts.Token).ConfigureAwait(false);
                 if (!resp.IsSuccessStatusCode)
                     return null;
                 var data = await resp.Content.ReadAsByteArrayAsync(cts.Token).ConfigureAwait(false);

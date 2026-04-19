@@ -135,7 +135,7 @@ public partial class GreenLumaService
             for (var i = 0; i < limitedAppIds.Count; i++)
             {
                 var filePath = Path.Combine(appListPath, $"{i}.txt");
-                await File.WriteAllTextAsync(filePath, limitedAppIds[i]);
+                await File.WriteAllTextAsync(filePath, limitedAppIds[i]).ConfigureAwait(false);
             }
 
             return totalCount;

@@ -51,6 +51,7 @@ public partial class App
     {
         try
         {
+            SteamService.Instance.Dispose();
             PluginService.OnApplicationShutdown();
         }
         catch (Exception ex)
@@ -65,11 +66,11 @@ public partial class App
     {
         try
         {
-            var semaphore = new SemaphoreSlim(6);
+            using var semaphore = new SemaphoreSlim(6);
             var tasks = new List<Task>();
             foreach (var profile in profiles)
             {
-                var changed = false;
+                var changed = 0;
                 foreach (var game in profile.Games)
                 {
                     if (string.IsNullOrWhiteSpace(game.AppId))
@@ -98,7 +99,7 @@ public partial class App
                                 if (!string.IsNullOrEmpty(path))
                                 {
                                     game.IconUrl = path;
-                                    changed = true;
+                                    Interlocked.Exchange(ref changed, 1);
                                 }
                             }
                             catch (Exception ex)
@@ -124,7 +125,7 @@ public partial class App
                                 if (!string.IsNullOrEmpty(path))
                                 {
                                     game.IconUrl = path;
-                                    changed = true;
+                                    Interlocked.Exchange(ref changed, 1);
                                 }
                             }
                             catch (Exception ex)
@@ -141,7 +142,7 @@ public partial class App
                 }
 
                 await Task.WhenAll(tasks);
-                if (changed)
+                if (changed != 0)
                     try
                     {
                         ProfileService.Save(profile);

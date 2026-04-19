@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using GreenLuma_Manager.Models;
 using GreenLuma_Manager.Utilities;
-using Newtonsoft.Json.Linq;
 
 namespace GreenLuma_Manager.Services;
 
@@ -72,24 +71,25 @@ public class ConfigService
     {
         try
         {
-            var jsonData = JObject.Parse(configJson);
+            using var doc = JsonDocument.Parse(configJson);
+            var root = doc.RootElement;
 
-            if (jsonData["steam_path"] == null && jsonData["SteamPath"] != null) return null;
+            if (!root.TryGetProperty("steam_path", out _) && root.TryGetProperty("SteamPath", out _)) return null;
 
-            if (jsonData["steam_path"] != null)
+            if (root.TryGetProperty("steam_path", out _))
             {
                 var config = new Config
                 {
-                    SteamPath = jsonData["steam_path"]?.ToString() ?? string.Empty,
-                    GreenLumaPath = jsonData["greenluma_path"]?.ToString() ?? string.Empty,
-                    NoHook = jsonData["no_hook"]?.ToObject<bool>() ?? false,
-                    DisableUpdateCheck = jsonData["disable_update_check"]?.ToObject<bool>() ?? false,
-                    AutoUpdate = jsonData["auto_update"]?.ToObject<bool>() ?? true,
-                    LastProfile = jsonData["last_profile"]?.ToString() ?? "default",
-                    CheckUpdate = jsonData["check_update"]?.ToObject<bool>() ?? true,
-                    ReplaceSteamAutostart = jsonData["replace_steam_autostart"]?.ToObject<bool>() ?? false,
-                    PrefetchAppList = jsonData["prefetch_app_list"]?.ToObject<bool>() ?? false,
-                    SteamApiKey = jsonData["steam_api_key"]?.ToString() ?? string.Empty,
+                    SteamPath = GetStringOrDefault(root, "steam_path", string.Empty),
+                    GreenLumaPath = GetStringOrDefault(root, "greenluma_path", string.Empty),
+                    NoHook = GetBoolOrDefault(root, "no_hook", false),
+                    DisableUpdateCheck = GetBoolOrDefault(root, "disable_update_check", false),
+                    AutoUpdate = GetBoolOrDefault(root, "auto_update", true),
+                    LastProfile = GetStringOrDefault(root, "last_profile", "default"),
+                    CheckUpdate = GetBoolOrDefault(root, "check_update", true),
+                    ReplaceSteamAutostart = GetBoolOrDefault(root, "replace_steam_autostart", false),
+                    PrefetchAppList = GetBoolOrDefault(root, "prefetch_app_list", false),
+                    SteamApiKey = GetStringOrDefault(root, "steam_api_key", string.Empty),
                     FirstRun = false
                 };
 
@@ -104,6 +104,18 @@ public class ConfigService
             LogService.LogError("ConfigService.TryMigrate", ex);
             return null;
         }
+    }
+
+    private static string GetStringOrDefault(JsonElement root, string propertyName, string defaultValue)
+    {
+        return root.TryGetProperty(propertyName, out var prop) ? prop.GetString() ?? defaultValue : defaultValue;
+    }
+
+    private static bool GetBoolOrDefault(JsonElement root, string propertyName, bool defaultValue)
+    {
+        return root.TryGetProperty(propertyName, out var prop) && prop.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? prop.GetBoolean()
+            : defaultValue;
     }
 
     public static void Save(Config config)
@@ -123,7 +135,7 @@ public class ConfigService
 
     private static string SerializeConfig(Config config)
     {
-        return JsonSerializer.Serialize(config);
+        return JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
     }
 
     public static void WipeData()

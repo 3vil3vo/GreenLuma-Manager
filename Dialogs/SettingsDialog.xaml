@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Settings"
     Width="950"
-    Height="680"
+    Height="780"
     MinWidth="850"
     MinHeight="600"
     Background="#FF1A1A1A"
@@ -487,7 +487,20 @@
 
             <Border Grid.Row="0" Background="Transparent" />
 
-            <Grid Grid.Row="1" Margin="40,0,40,40">
+            <ScrollViewer
+                Grid.Row="1"
+                Margin="40,0,40,40"
+                Focusable="False"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <ScrollViewer.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.MergedDictionaries>
+                            <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
+                        </ResourceDictionary.MergedDictionaries>
+                    </ResourceDictionary>
+                </ScrollViewer.Resources>
+            <Grid>
 
                 <Grid
                     x:Name="ViewGeneral"
@@ -838,6 +851,7 @@
                 </Grid>
 
             </Grid>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Window>

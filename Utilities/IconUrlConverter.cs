@@ -21,7 +21,10 @@ public class IconUrlConverter : IValueConverter
                 bmp.UriSource = new Uri(iconUrl, UriKind.Absolute);
                 bmp.CacheOption = BitmapCacheOption.OnDemand;
                 bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                bmp.DecodePixelWidth = 64;
                 bmp.EndInit();
+                bmp.DownloadFailed += (_, args) =>
+                    LogService.LogError("IconUrlConverter.DownloadFailed", args.ErrorException);
                 return bmp;
             }
 
