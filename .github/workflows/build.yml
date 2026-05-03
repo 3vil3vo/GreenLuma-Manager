@@ -1,0 +1,32 @@
+name: Build
+
+on:
+  push:
+    branches: [ all-improvements, main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish
+        run: dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o ./publish
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GreenLuma-Manager
+          path: ./publish/GreenLuma-Manager.exe

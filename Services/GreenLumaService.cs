@@ -242,7 +242,7 @@ public partial class GreenLumaService
         try
         {
             var steamExePath = Path.Combine(config.SteamPath, "Steam.exe");
-            string[] processNames = ["steam", "steamservice", "steamwebhelper"];
+            string[] processNames = ["steam", "steamservice", "steamwebhelper", "steamerrorfilereporter"];
 
             if (File.Exists(steamExePath))
                 try
@@ -254,7 +254,7 @@ public partial class GreenLumaService
                         UseShellExecute = false,
                         CreateNoWindow = true
                     });
-                    Thread.Sleep(2000);
+                    Thread.Sleep(3000);
                 }
                 catch (Exception ex)
                 {
@@ -263,10 +263,43 @@ public partial class GreenLumaService
 
             foreach (var processName in processNames)
                 KillProcessesByName(processName);
+
+            WaitForProcessesExit(processNames);
         }
         catch (Exception ex)
         {
             LogService.LogError("GreenLumaService.KillSteam", ex);
+        }
+    }
+
+    private static void WaitForProcessesExit(string[] processNames)
+    {
+        const int maxWaitMs = 10000;
+        const int pollIntervalMs = 500;
+        var elapsed = 0;
+
+        while (elapsed < maxWaitMs)
+        {
+            var anyRunning = false;
+            foreach (var name in processNames)
+            {
+                var processes = Process.GetProcessesByName(name);
+                if (processes.Length > 0)
+                {
+                    anyRunning = true;
+                    foreach (var p in processes)
+                    {
+                        try { p.Kill(); } catch { }
+                        p.Dispose();
+                    }
+                }
+            }
+
+            if (!anyRunning)
+                break;
+
+            Thread.Sleep(pollIntervalMs);
+            elapsed += pollIntervalMs;
         }
     }
 
