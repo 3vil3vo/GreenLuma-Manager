@@ -106,6 +106,7 @@ public partial class MainWindow
         {
             TglStealthMode.IsChecked = _config.NoHook;
             SearchService.SetApiKey(_config.SteamApiKey);
+            SearchService.SetShowHiddenDlcs(_config.ShowHiddenDlcs);
 
             if (_config.WindowWidth >= MinWidth && _config.WindowHeight >= MinHeight)
             {
@@ -326,6 +327,12 @@ public partial class MainWindow
         {
             var query = TxtSearchInput.Text.Trim();
 
+            if (uint.TryParse(query, out var appId) && appId > 0)
+            {
+                await TryAddByAppIdAsync(appId).ConfigureAwait(true);
+                return;
+            }
+
             if (!ValidateSearchQuery(query))
                 return;
 
@@ -351,6 +358,44 @@ public partial class MainWindow
         catch (Exception ex)
         {
             LogService.LogError("MainWindow.SearchButton", ex);
+        }
+    }
+
+    private async Task TryAddByAppIdAsync(uint appId)
+    {
+        var appIdStr = appId.ToString();
+
+        try
+        {
+            ShowSearchLoading();
+
+            var details = await Task.Run(() => SteamService.Instance.GetGameDetailsAsync(appId)).ConfigureAwait(true);
+
+            _loadingDotsTimer?.Stop();
+            PnlSearchLoading.Visibility = Visibility.Collapsed;
+
+            if (details == null || details.Name == $"App {appId}")
+            {
+                ShowToast($"App ID {appId} not found on Steam", false);
+                return;
+            }
+
+            var game = new Game
+            {
+                AppId = appIdStr,
+                Name = details.Name,
+                Type = details.Type,
+                IconUrl = string.Empty
+            };
+
+            AddGameToProfile(game);
+        }
+        catch (Exception ex)
+        {
+            _loadingDotsTimer?.Stop();
+            PnlSearchLoading.Visibility = Visibility.Collapsed;
+            ShowToast("Failed to look up App ID: " + ex.Message, false);
+            LogService.LogError("MainWindow.TryAddByAppId", ex);
         }
     }
 
@@ -389,6 +434,11 @@ public partial class MainWindow
             return;
 
         await SearchService.FetchIconUrlsAsync(results, token).ConfigureAwait(true);
+
+        if (token.IsCancellationRequested)
+            return;
+
+        await SearchService.ExpandHiddenDlcsAsync(results, token).ConfigureAwait(true);
 
         if (token.IsCancellationRequested)
             return;

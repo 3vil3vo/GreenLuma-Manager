@@ -123,6 +123,12 @@ public sealed class SteamService : IDisposable
                     if (string.IsNullOrEmpty(headerImage))
                         headerImage = headerNode["english"].Value;
 
+                    List<string>? dlcList = null;
+                    var dlcListValue = common["extended"]["listofdlc"].Value;
+                    if (!string.IsNullOrEmpty(dlcListValue))
+                        dlcList = dlcListValue.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+
                     results[appId] = new GameDetails(
                         appId.ToString(),
                         type,
@@ -131,7 +137,8 @@ public sealed class SteamService : IDisposable
                         heroHash,
                         mainHash,
                         parentId,
-                        headerImage
+                        headerImage,
+                        dlcList
                     );
                 }
 
@@ -292,5 +299,6 @@ public record GameDetails(
     string? HeroHash = null,
     string? MainHash = null,
     string? ParentAppId = null,
-    string? HeaderImage = null
+    string? HeaderImage = null,
+    List<string>? ListOfDlc = null
 );

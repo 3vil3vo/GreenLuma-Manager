@@ -70,6 +70,7 @@ public class SearchService
     private const int BatchSize = 150;
 
     private static string _steamApiKey = string.Empty;
+    private static bool _showHiddenDlcs;
     private static List<SteamApp>? _appListCache;
     private static readonly SemaphoreSlim AppListLock = new(1, 1);
     private static readonly ConcurrentDictionary<string, GameDetails> DetailsCache = new();
@@ -80,6 +81,11 @@ public class SearchService
     public static void SetApiKey(string apiKey)
     {
         _steamApiKey = apiKey ?? string.Empty;
+    }
+
+    public static void SetShowHiddenDlcs(bool show)
+    {
+        _showHiddenDlcs = show;
     }
 
     private static async Task<List<Game>> SearchStoreAsync(string query, CancellationToken ct = default)
@@ -489,6 +495,63 @@ public class SearchService
         });
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
+    }
+
+    public static async Task ExpandHiddenDlcsAsync(List<Game> results, CancellationToken ct = default)
+    {
+        if (!_showHiddenDlcs) return;
+
+        var gameAppIds = results
+            .Where(g => string.Equals(g.Type, "Game", StringComparison.OrdinalIgnoreCase))
+            .Select(g => g.AppId)
+            .Distinct()
+            .ToList();
+
+        if (gameAppIds.Count == 0) return;
+
+        var detailsMap = await FetchGameDetailsBatchAsync(gameAppIds).ConfigureAwait(false);
+
+        var existingIds = new HashSet<string>(results.Select(g => g.AppId));
+        var hiddenDlcIds = new List<string>();
+
+        foreach (var appId in gameAppIds)
+        {
+            if (!detailsMap.TryGetValue(appId, out var details)) continue;
+            if (details.ListOfDlc == null || details.ListOfDlc.Count == 0) continue;
+
+            foreach (var dlcId in details.ListOfDlc)
+            {
+                if (!existingIds.Contains(dlcId))
+                {
+                    hiddenDlcIds.Add(dlcId);
+                    existingIds.Add(dlcId);
+                }
+            }
+        }
+
+        if (hiddenDlcIds.Count == 0) return;
+
+        var dlcDetailsMap = await FetchGameDetailsBatchAsync(hiddenDlcIds).ConfigureAwait(false);
+
+        foreach (var dlcId in hiddenDlcIds)
+        {
+            if (ct.IsCancellationRequested) return;
+
+            var name = dlcDetailsMap.TryGetValue(dlcId, out var dlcDetails)
+                ? dlcDetails.Name
+                : $"App {dlcId}";
+            var type = dlcDetailsMap.TryGetValue(dlcId, out var dlcDetails2)
+                ? dlcDetails2.Type
+                : "DLC";
+
+            results.Add(new Game
+            {
+                AppId = dlcId,
+                Name = name,
+                Type = type,
+                IconUrl = string.Empty
+            });
+        }
     }
 
     private record SteamApp(string AppId, string Name, string NameLower);
