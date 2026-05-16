@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Net.Http;
 using System.Text.Json;
 using GreenLuma_Manager.Models;
 
@@ -86,6 +87,13 @@ public class SearchService
     public static void SetShowHiddenDlcs(bool show)
     {
         _showHiddenDlcs = show;
+    }
+
+    public static string? LookupAppName(string appId)
+    {
+        if (_appListCache == null) return null;
+        var app = _appListCache.Find(a => a.AppId == appId);
+        return app?.Name;
     }
 
     private static async Task<List<Game>> SearchStoreAsync(string query, CancellationToken ct = default)
@@ -513,7 +521,9 @@ public class SearchService
 
         var existingIds = new HashSet<string>(results.Select(g => g.AppId));
         var hiddenDlcIds = new List<string>();
+        var dlcParentName = new Dictionary<string, string>();
 
+        // 1. Expand from listofdlc
         foreach (var appId in gameAppIds)
         {
             if (!detailsMap.TryGetValue(appId, out var details)) continue;
@@ -525,24 +535,105 @@ public class SearchService
                 {
                     hiddenDlcIds.Add(dlcId);
                     existingIds.Add(dlcId);
+                    dlcParentName.TryAdd(dlcId, details.Name);
                 }
+            }
+        }
+
+        // 2. Expand from packages — find all packages for each game, then get all apps in those packages
+        foreach (var appIdStr in gameAppIds)
+        {
+            if (ct.IsCancellationRequested) return;
+            if (!uint.TryParse(appIdStr, out var appIdNum)) continue;
+
+            var parentName = detailsMap.TryGetValue(appIdStr, out var parentDetails) ? parentDetails.Name : null;
+
+            try
+            {
+                var packageIds = await FetchStorePackageIdsAsync(appIdStr, ct).ConfigureAwait(false);
+
+                foreach (var pkgId in packageIds)
+                {
+                    if (ct.IsCancellationRequested) return;
+
+                    var pkgAppIds = await SteamService.Instance.GetPackageAppIdsAsync(pkgId).ConfigureAwait(false);
+                    foreach (var pkgAppId in pkgAppIds)
+                    {
+                        var pkgAppIdStr = pkgAppId.ToString();
+                        if (!existingIds.Contains(pkgAppIdStr))
+                        {
+                            hiddenDlcIds.Add(pkgAppIdStr);
+                            existingIds.Add(pkgAppIdStr);
+                            if (parentName != null)
+                                dlcParentName.TryAdd(pkgAppIdStr, parentName);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.LogError("SearchService.ExpandPackages", ex);
             }
         }
 
         if (hiddenDlcIds.Count == 0) return;
 
+        // Build lookup from API-key app list cache (most reliable source for hidden DLCs)
+        var appListLookup = new Dictionary<string, string>();
+        if (_appListCache != null)
+            foreach (var app in _appListCache)
+                appListLookup.TryAdd(app.AppId, app.Name);
+
+        // Try PICS for type/name info
         var dlcDetailsMap = await FetchGameDetailsBatchAsync(hiddenDlcIds).ConfigureAwait(false);
+
+        // Collect still-unresolved IDs
+        var unresolvedIds = new List<string>();
+        foreach (var dlcId in hiddenDlcIds)
+        {
+            var hasPics = dlcDetailsMap.TryGetValue(dlcId, out var d) && d.Name != $"App {dlcId}";
+            var hasCache = appListLookup.ContainsKey(dlcId);
+            if (!hasPics && !hasCache)
+                unresolvedIds.Add(dlcId);
+        }
+
+        // Use IStoreBrowseService/GetItems with API key for anything still unresolved
+        if (unresolvedIds.Count > 0 && !string.IsNullOrWhiteSpace(_steamApiKey))
+        {
+            var browseResults = await FetchStoreBrowseItemsAsync(unresolvedIds, ct).ConfigureAwait(false);
+            foreach (var (id, name) in browseResults)
+                appListLookup[id] = name;
+
+            // Recalculate unresolved after browse
+            unresolvedIds = unresolvedIds
+                .Where(id => !appListLookup.ContainsKey(id))
+                .ToList();
+        }
 
         foreach (var dlcId in hiddenDlcIds)
         {
             if (ct.IsCancellationRequested) return;
 
-            var name = dlcDetailsMap.TryGetValue(dlcId, out var dlcDetails)
-                ? dlcDetails.Name
-                : $"App {dlcId}";
-            var type = dlcDetailsMap.TryGetValue(dlcId, out var dlcDetails2)
-                ? dlcDetails2.Type
-                : "DLC";
+            string name;
+            string type;
+
+            if (dlcDetailsMap.TryGetValue(dlcId, out var dlcDetails) && dlcDetails.Name != $"App {dlcId}")
+            {
+                name = dlcDetails.Name;
+                type = dlcDetails.Type;
+            }
+            else if (appListLookup.TryGetValue(dlcId, out var cachedName) && !string.IsNullOrEmpty(cachedName))
+            {
+                name = cachedName;
+                type = dlcDetailsMap.TryGetValue(dlcId, out var d) ? d.Type : "DLC";
+            }
+            else
+            {
+                name = dlcParentName.TryGetValue(dlcId, out var parentName)
+                    ? $"{parentName} - DLC {dlcId}"
+                    : $"Unknown DLC {dlcId}";
+                type = "DLC";
+            }
 
             results.Add(new Game
             {
@@ -552,6 +643,154 @@ public class SearchService
                 IconUrl = string.Empty
             });
         }
+    }
+
+    private static async Task<List<uint>> FetchStorePackageIdsAsync(string appId, CancellationToken ct = default)
+    {
+        var packageIds = new List<uint>();
+        try
+        {
+            var url = $"https://store.steampowered.com/api/appdetails?appids={Uri.EscapeDataString(appId)}&cc=US&l=english";
+            var response = await HttpClientProvider.Default.GetStringAsync(url, ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(response);
+
+            if (!doc.RootElement.TryGetProperty(appId, out var appElem)) return packageIds;
+            if (!appElem.TryGetProperty("success", out var success) || !success.GetBoolean()) return packageIds;
+            if (!appElem.TryGetProperty("data", out var data)) return packageIds;
+            if (!data.TryGetProperty("packages", out var packages)) return packageIds;
+
+            foreach (var pkg in packages.EnumerateArray())
+                if (pkg.TryGetUInt32(out var pkgId))
+                    packageIds.Add(pkgId);
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SearchService.FetchStorePackageIds", ex);
+        }
+
+        return packageIds;
+    }
+
+    public static async Task<Dictionary<string, GameDetails>> FetchStoreAppDetailsAsync(
+        List<string> appIds, CancellationToken ct = default)
+    {
+        var results = new Dictionary<string, GameDetails>();
+        var semaphore = new SemaphoreSlim(2);
+
+        var tasks = appIds.Select(async appId =>
+        {
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                var url = $"https://store.steampowered.com/api/appdetails?appids={Uri.EscapeDataString(appId)}&cc=US&l=english";
+                var response = await HttpClientProvider.Default.GetStringAsync(url, ct).ConfigureAwait(false);
+                using var doc = JsonDocument.Parse(response);
+
+                if (!doc.RootElement.TryGetProperty(appId, out var appElem)) return;
+                if (!appElem.TryGetProperty("success", out var success) || !success.GetBoolean()) return;
+                if (!appElem.TryGetProperty("data", out var data)) return;
+
+                var name = data.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? $"App {appId}" : $"App {appId}";
+                var typeStr = data.TryGetProperty("type", out var typeProp) ? typeProp.GetString() ?? "dlc" : "dlc";
+
+                var type = typeStr.ToLower() switch
+                {
+                    "game" => "Game",
+                    "dlc" => "DLC",
+                    "demo" => "Demo",
+                    "mod" => "Mod",
+                    "video" => "Video",
+                    "music" => "Soundtrack",
+                    _ => "DLC"
+                };
+
+                lock (results)
+                {
+                    results[appId] = new GameDetails(appId, type, name);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.LogError($"SearchService.FetchStoreAppDetails:{appId}", ex);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+        return results;
+    }
+
+    private static async Task<Dictionary<string, string>> FetchStoreBrowseItemsAsync(
+        List<string> appIds, CancellationToken ct = default)
+    {
+        var results = new Dictionary<string, string>();
+        if (string.IsNullOrWhiteSpace(_steamApiKey)) return results;
+
+        try
+        {
+            var ids = appIds
+                .Where(id => uint.TryParse(id, out _))
+                .Select(id => new { appid = uint.Parse(id) })
+                .ToArray();
+
+            var inputJson = JsonSerializer.Serialize(new
+            {
+                ids = ids.Select(x => new { appid = x.appid }).ToArray(),
+                context = new { language = "english", country_code = "US" },
+                data_request = new { include_basic_info = true }
+            });
+
+            var url = $"https://api.steampowered.com/IStoreBrowseService/GetItems/v1/?key={Uri.EscapeDataString(_steamApiKey)}&input_json={Uri.EscapeDataString(inputJson)}";
+            var response = await HttpClientProvider.Default.GetStringAsync(url, ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(response);
+
+            if (!doc.RootElement.TryGetProperty("response", out var resp)) return results;
+            if (!resp.TryGetProperty("store_items", out var items)) return results;
+
+            foreach (var item in items.EnumerateArray())
+            {
+                var appId = item.TryGetProperty("appid", out var aidProp) ? aidProp.GetUInt32().ToString() : null;
+                var name = item.TryGetProperty("name", out var nProp) ? nProp.GetString() : null;
+
+                if (!string.IsNullOrEmpty(appId) && !string.IsNullOrEmpty(name))
+                    results[appId] = name;
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SearchService.FetchStoreBrowseItems", ex);
+        }
+
+        return results;
+    }
+
+    public static async Task<Dictionary<string, string>> ResolveAppNamesAsync(List<string> appIds)
+    {
+        var results = new Dictionary<string, string>();
+        var unresolved = new List<string>();
+
+        // Try app list cache first
+        foreach (var id in appIds)
+        {
+            var name = LookupAppName(id);
+            if (name != null)
+                results[id] = name;
+            else
+                unresolved.Add(id);
+        }
+
+        // Use IStoreBrowseService for the rest
+        if (unresolved.Count > 0)
+        {
+            var browseResults = await FetchStoreBrowseItemsAsync(unresolved).ConfigureAwait(false);
+            foreach (var (id, name) in browseResults)
+                results[id] = name;
+        }
+
+        return results;
     }
 
     private record SteamApp(string AppId, string Name, string NameLower);

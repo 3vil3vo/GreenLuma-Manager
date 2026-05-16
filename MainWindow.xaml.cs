@@ -21,6 +21,7 @@ namespace GreenLuma_Manager;
 public partial class MainWindow
 {
     public const string Version = "RC2.12";
+    private const string LatestGreenLumaVersion = "1.7.7";
     private const int ToastDurationMs = 6000;
 
     private readonly ObservableCollection<Game> _games;
@@ -107,7 +108,6 @@ public partial class MainWindow
             TglStealthMode.IsChecked = _config.NoHook;
             SearchService.SetApiKey(_config.SteamApiKey);
             SearchService.SetShowHiddenDlcs(_config.ShowHiddenDlcs);
-
             if (_config.WindowWidth >= MinWidth && _config.WindowHeight >= MinHeight)
             {
                 Width = _config.WindowWidth;
@@ -369,32 +369,111 @@ public partial class MainWindow
         {
             ShowSearchLoading();
 
+            // Try as app ID first
             var details = await Task.Run(() => SteamService.Instance.GetGameDetailsAsync(appId)).ConfigureAwait(true);
+
+            if (details != null && details.Name != $"App {appId}")
+            {
+                _loadingDotsTimer?.Stop();
+                PnlSearchLoading.Visibility = Visibility.Collapsed;
+
+                var game = new Game
+                {
+                    AppId = appIdStr,
+                    Name = details.Name,
+                    Type = details.Type,
+                    IconUrl = string.Empty
+                };
+
+                AddGameToProfile(game);
+                return;
+            }
+
+            // Try as package/sub ID — resolve all apps from the package
+            var pkgAppIds = await Task.Run(() => SteamService.Instance.GetPackageAppIdsAsync(appId)).ConfigureAwait(true);
+
+            if (pkgAppIds.Count > 0)
+            {
+                var appDetails = await Task.Run(() =>
+                    SteamService.Instance.GetAppInfoBatchAsync(pkgAppIds)).ConfigureAwait(true);
+
+                var results = new List<Game>();
+                var unresolvedIds = new List<string>();
+
+                foreach (var pkgAppId in pkgAppIds)
+                {
+                    var pkgAppIdStr = pkgAppId.ToString();
+                    var name = appDetails.TryGetValue(pkgAppId, out var d) ? d.Name : $"App {pkgAppId}";
+                    var type = appDetails.TryGetValue(pkgAppId, out var d2) ? d2.Type : "DLC";
+
+                    if (name == $"App {pkgAppId}")
+                        unresolvedIds.Add(pkgAppIdStr);
+
+                    results.Add(new Game
+                    {
+                        AppId = pkgAppIdStr,
+                        Name = name,
+                        Type = type,
+                        IconUrl = string.Empty
+                    });
+                }
+
+                // Resolve remaining names via API key
+                if (unresolvedIds.Count > 0)
+                {
+                    var resolved = await SearchService.ResolveAppNamesAsync(unresolvedIds).ConfigureAwait(true);
+                    foreach (var game in results)
+                        if (resolved.TryGetValue(game.AppId, out var resolvedName))
+                            game.Name = resolvedName;
+                }
+
+                _loadingDotsTimer?.Stop();
+                PnlSearchLoading.Visibility = Visibility.Collapsed;
+
+                // Include the searched ID itself if it's not already in the package contents
+                if (!results.Any(g => g.AppId == appIdStr))
+                {
+                    results.Insert(0, new Game
+                    {
+                        AppId = appIdStr,
+                        Name = details != null && details.Name != $"App {appId}" ? details.Name : $"App {appId}",
+                        Type = details?.Type ?? "Package",
+                        IconUrl = string.Empty
+                    });
+                }
+
+                DisplaySearchResults(results);
+                ShowToast($"Found {results.Count} apps in package {appId}");
+                return;
+            }
 
             _loadingDotsTimer?.Stop();
             PnlSearchLoading.Visibility = Visibility.Collapsed;
 
-            if (details == null || details.Name == $"App {appId}")
+            var result = CustomMessageBox.Show(
+                $"App ID {appId} was not found on Steam.\n\nDo you want to add it anyway as an unrecognized app?",
+                "App Not Found",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
             {
-                ShowToast($"App ID {appId} not found on Steam", false);
-                return;
+                var game = new Game
+                {
+                    AppId = appIdStr,
+                    Name = $"Unknown App {appId}",
+                    Type = "Unknown",
+                    IconUrl = string.Empty
+                };
+
+                AddGameToProfile(game);
             }
-
-            var game = new Game
-            {
-                AppId = appIdStr,
-                Name = details.Name,
-                Type = details.Type,
-                IconUrl = string.Empty
-            };
-
-            AddGameToProfile(game);
         }
         catch (Exception ex)
         {
             _loadingDotsTimer?.Stop();
             PnlSearchLoading.Visibility = Visibility.Collapsed;
-            ShowToast("Failed to look up App ID: " + ex.Message, false);
+            ShowToast("Failed to look up ID: " + ex.Message, false);
             LogService.LogError("MainWindow.TryAddByAppId", ex);
         }
     }
@@ -1735,7 +1814,13 @@ public partial class MainWindow
         var glVersion = GreenLumaService.DetectVersion(greenLumaPath);
         if (glVersion != null)
         {
-            TxtGreenLumaVersionStatus.Text = $"GL v{glVersion}";
+            var isOutdated = IsGreenLumaOutdated(glVersion);
+            TxtGreenLumaVersionStatus.Text = isOutdated
+                ? $"GL v{glVersion} (outdated)"
+                : $"GL v{glVersion}";
+            TxtGreenLumaVersionStatus.Foreground = isOutdated
+                ? (Resources["Warning"] as Brush ?? Brushes.Orange)
+                : (Resources["TextTert"] as Brush ?? Brushes.Gray);
             TxtGreenLumaVersionStatus.Visibility = Visibility.Visible;
             TxtVersionDot.Visibility = Visibility.Visible;
         }
@@ -1776,6 +1861,22 @@ public partial class MainWindow
             SetStatusIndicator(successBrush, isStealthOnly ? "Ready  •  Stealth Mode (Forced)" : "Ready  •  Stealth Mode");
         else
             SetStatusIndicator(successBrush, "Ready  •  Normal Mode");
+    }
+
+    private static bool IsGreenLumaOutdated(string detectedVersion)
+    {
+        var detected = detectedVersion.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        var latest = LatestGreenLumaVersion.Split('.', StringSplitOptions.RemoveEmptyEntries);
+
+        for (var i = 0; i < Math.Max(detected.Length, latest.Length); i++)
+        {
+            var d = i < detected.Length && int.TryParse(detected[i], out var dv) ? dv : 0;
+            var l = i < latest.Length && int.TryParse(latest[i], out var lv) ? lv : 0;
+            if (d < l) return true;
+            if (d > l) return false;
+        }
+
+        return false;
     }
 
     private void SetStatusIndicator(Brush color, string text)

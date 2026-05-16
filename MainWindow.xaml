@@ -33,6 +33,7 @@
             <SolidColorBrush x:Key="TextSecond" Color="#FFAAAAAA" />
             <SolidColorBrush x:Key="TextTert" Color="#FF666666" />
             <SolidColorBrush x:Key="Success" Color="#FF4CAF50" />
+            <SolidColorBrush x:Key="Warning" Color="#FFFFAA00" />
             <SolidColorBrush x:Key="Danger" Color="#FFFF4444" />
 
             <utilities:IconUrlConverter x:Key="IconUrlConverter" />

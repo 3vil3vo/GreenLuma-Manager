@@ -75,7 +75,24 @@ public sealed class SteamService : IDisposable
             {
                 await EnsureReadyAsync().ConfigureAwait(false);
 
-                var requests = appIds.Select(id => new SteamApps.PICSRequest { ID = id, AccessToken = 0 }).ToList();
+                // Fetch access tokens for apps that require them
+                var tokens = new Dictionary<uint, ulong>();
+                try
+                {
+                    var tokenResult = await _steamApps.PICSGetAccessTokens(appIds, []).ToTask().ConfigureAwait(false);
+                    foreach (var (appId, token) in tokenResult.AppTokens)
+                        tokens[appId] = token;
+                }
+                catch
+                {
+                    // Fall through with no tokens
+                }
+
+                var requests = appIds.Select(id => new SteamApps.PICSRequest
+                {
+                    ID = id,
+                    AccessToken = tokens.TryGetValue(id, out var t) ? t : 0
+                }).ToList();
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
                 var job = _steamApps.PICSGetProductInfo(requests, []);
@@ -223,6 +240,83 @@ public sealed class SteamService : IDisposable
         }
 
         return info;
+    }
+
+    public async Task<List<uint>> GetPackageAppIdsAsync(uint packageId)
+    {
+        var appIds = new List<uint>();
+        try
+        {
+            await EnsureReadyAsync().ConfigureAwait(false);
+
+            var request = new SteamApps.PICSRequest { ID = packageId, AccessToken = 0 };
+            var job = _steamApps.PICSGetProductInfo([], [request]);
+
+            var task = job.ToTask();
+            if (await Task.WhenAny(task, Task.Delay(5000)) != task)
+                return appIds;
+
+            var result = await task.ConfigureAwait(false);
+            if (result.Failed || result.Results == null)
+                return appIds;
+
+            foreach (var callback in result.Results)
+            {
+                if (!callback.Packages.TryGetValue(packageId, out var pkgData))
+                    continue;
+
+                var kv = pkgData.KeyValues;
+                var appIdsNode = kv["appids"];
+                foreach (var child in appIdsNode.Children)
+                    if (uint.TryParse(child.Value, out var appId))
+                        appIds.Add(appId);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SteamService.GetPackageAppIds", ex);
+        }
+
+        return appIds;
+    }
+
+    public async Task<List<uint>> GetAppPackageIdsAsync(uint appId)
+    {
+        var packageIds = new List<uint>();
+        try
+        {
+            await EnsureReadyAsync().ConfigureAwait(false);
+
+            var request = new SteamApps.PICSRequest { ID = appId, AccessToken = 0 };
+            var job = _steamApps.PICSGetProductInfo([request], []);
+
+            var task = job.ToTask();
+            if (await Task.WhenAny(task, Task.Delay(5000)) != task)
+                return packageIds;
+
+            var result = await task.ConfigureAwait(false);
+            if (result.Failed || result.Results == null)
+                return packageIds;
+
+            foreach (var callback in result.Results)
+            {
+                if (!callback.Apps.TryGetValue(appId, out var appData))
+                    continue;
+
+                var kv = appData.KeyValues;
+                var depotsNode = kv["depots"];
+                var baseLicensesNode = depotsNode["baselicenses"];
+                foreach (var child in baseLicensesNode.Children)
+                    if (uint.TryParse(child.Value, out var pkgId))
+                        packageIds.Add(pkgId);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SteamService.GetAppPackageIds", ex);
+        }
+
+        return packageIds;
     }
 
     private async Task EnsureReadyAsync()
