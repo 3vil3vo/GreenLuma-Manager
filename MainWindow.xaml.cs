@@ -21,7 +21,7 @@ namespace GreenLuma_Manager;
 public partial class MainWindow
 {
     public const string Version = "RC2.12";
-    private const string LatestGreenLumaVersion = "1.7.7";
+    private const string LatestGreenLumaVersion = "1.7.8";
     private const int ToastDurationMs = 6000;
 
     private readonly ObservableCollection<Game> _games;
@@ -1323,6 +1323,21 @@ public partial class MainWindow
             if (!await CheckAndGenerateAppList().ConfigureAwait(true))
                 return;
 
+            // Run pre-launch diagnostics
+            var issues = GreenLumaService.RunPreLaunchDiagnostics(_config!);
+            if (issues.Count > 0)
+            {
+                var issueText = string.Join("\n• ", issues);
+                var diagResult = CustomMessageBox.Show(
+                    $"Pre-launch check found potential issues:\n\n• {issueText}\n\nLaunch anyway?",
+                    "Diagnostic Warning",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Exclamation);
+
+                if (diagResult != MessageBoxResult.Yes)
+                    return;
+            }
+
             var result = CustomMessageBox.Show(
                 "This will close Steam and launch GreenLuma. Continue?",
                 "Launch GreenLuma",
@@ -1337,7 +1352,24 @@ public partial class MainWindow
             try
             {
                 if (_config != null && await GreenLumaService.LaunchGreenLumaAsync(_config).ConfigureAwait(true))
-                    ShowToast("GreenLuma launched successfully");
+                {
+                    ShowToast("GreenLuma launched — monitoring Steam...");
+
+                    // Monitor for crash in background
+                    var crashInfo = await GreenLumaService.MonitorSteamAfterLaunchAsync(_config).ConfigureAwait(true);
+                    if (crashInfo != null)
+                    {
+                        CustomMessageBox.Show(
+                            $"Steam crashed after injection:\n\n{crashInfo}",
+                            "Steam Crash Detected",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                    else
+                    {
+                        ShowToast("GreenLuma launched successfully");
+                    }
+                }
                 else
                     ShowToast("Failed to launch GreenLuma. Check settings.", false);
             }

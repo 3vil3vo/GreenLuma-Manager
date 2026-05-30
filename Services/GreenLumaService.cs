@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using GreenLuma_Manager.Models;
 
@@ -535,5 +537,306 @@ public partial class GreenLumaService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Runs pre-launch diagnostics and returns a list of issues found.
+    /// Empty list means all checks passed.
+    /// </summary>
+    public static List<string> RunPreLaunchDiagnostics(Config config)
+    {
+        var issues = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(config.GreenLumaPath) || !Directory.Exists(config.GreenLumaPath))
+        {
+            issues.Add("GreenLuma path does not exist.");
+            return issues;
+        }
+
+        if (string.IsNullOrWhiteSpace(config.SteamPath) || !Directory.Exists(config.SteamPath))
+        {
+            issues.Add("Steam path does not exist.");
+            return issues;
+        }
+
+        // Check injector exists
+        var injectorPath = Path.Combine(config.GreenLumaPath, "DLLInjector.exe");
+        if (!File.Exists(injectorPath))
+            issues.Add("DLLInjector.exe is missing — likely deleted by antivirus.");
+
+        // Check DLL from ini
+        var iniPath = Path.Combine(config.GreenLumaPath, "DLLInjector.ini");
+        if (!File.Exists(iniPath))
+        {
+            issues.Add("DLLInjector.ini is missing.");
+        }
+        else
+        {
+            var dllPath = GetDllPathFromIni(iniPath, config);
+            if (dllPath != null)
+            {
+                if (!File.Exists(dllPath))
+                    issues.Add($"GreenLuma DLL not found: {Path.GetFileName(dllPath)} — likely quarantined by antivirus.");
+                else
+                {
+                    // Check if DLL is suspiciously small (truncated/corrupted)
+                    var info = new FileInfo(dllPath);
+                    if (info.Length < 1024)
+                        issues.Add($"GreenLuma DLL is only {info.Length} bytes — possibly corrupted.");
+                }
+            }
+        }
+
+        // Check Steam.exe exists
+        var steamExe = Path.Combine(config.SteamPath, "Steam.exe");
+        if (!File.Exists(steamExe))
+            issues.Add("Steam.exe not found at configured Steam path.");
+
+        // Check if Steam is running (should be killed before injection)
+        var steamProcs = Process.GetProcessesByName("steam");
+        if (steamProcs.Length > 0)
+        {
+            // Not a blocking issue since we kill it, but note it
+            foreach (var p in steamProcs) p.Dispose();
+        }
+
+        // Check Windows Defender exclusion (best effort — check if recent quarantine events exist)
+        try
+        {
+            var defenderLog = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "Microsoft", "Windows Defender", "Support");
+            if (Directory.Exists(defenderLog))
+            {
+                var glPath = config.GreenLumaPath.ToLowerInvariant();
+                var recentQuarantine = CheckRecentDefenderDetections(glPath);
+                if (recentQuarantine != null)
+                    issues.Add($"Windows Defender recently quarantined: {recentQuarantine}");
+            }
+        }
+        catch { /* Best effort */ }
+
+        // Check for conflicting overlay DLLs in Steam path
+        var conflictingFiles = new[] { "RTSSHooks64.dll", "RTSSHooks.dll" };
+        foreach (var f in conflictingFiles)
+            if (File.Exists(Path.Combine(config.SteamPath, f)))
+                issues.Add($"Conflicting overlay detected: {f} (RivaTuner/MSI Afterburner).");
+
+        return issues;
+    }
+
+    /// <summary>
+    /// Monitors Steam after injection and returns crash diagnostic info.
+    /// Call this after LaunchGreenLumaAsync returns true.
+    /// </summary>
+    public static async Task<string?> MonitorSteamAfterLaunchAsync(Config config, int timeoutSeconds = 30)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var launchTime = DateTime.Now;
+
+                // Wait for Steam process to appear
+                Process? steamProcess = null;
+                var waitMs = 0;
+                const int pollMs = 500;
+                const int maxWaitForStartMs = 15000;
+
+                while (waitMs < maxWaitForStartMs)
+                {
+                    Thread.Sleep(pollMs);
+                    waitMs += pollMs;
+
+                    var procs = Process.GetProcessesByName("steam");
+                    if (procs.Length > 0)
+                    {
+                        steamProcess = procs[0];
+                        for (int i = 1; i < procs.Length; i++) procs[i].Dispose();
+                        break;
+                    }
+                }
+
+                if (steamProcess == null)
+                {
+                    // Check if injector itself crashed
+                    var injectorCrash = GetCrashFromEventLog("DLLInjector", launchTime);
+                    if (injectorCrash != null)
+                        return $"DLLInjector.exe crashed: {injectorCrash}";
+                    return "Steam process never started — DLLInjector may have failed silently. Check antivirus logs.";
+                }
+
+                // Monitor Steam for early exit using polling (can't use WaitForExit on externally started processes)
+                var remainingMs = (timeoutSeconds * 1000) - waitMs;
+                if (remainingMs < 5000) remainingMs = 5000;
+                var elapsed = 0;
+
+                while (elapsed < remainingMs)
+                {
+                    Thread.Sleep(pollMs);
+                    elapsed += pollMs;
+
+                    try
+                    {
+                        steamProcess.Refresh();
+                        if (steamProcess.HasExited)
+                        {
+                            int exitCode;
+                            try { exitCode = steamProcess.ExitCode; }
+                            catch { exitCode = -1; }
+                            steamProcess.Dispose();
+
+                            // Steam exited within our monitoring window — likely a crash
+                            var crashInfo = GetCrashFromEventLog("steam", launchTime);
+                            var sb = new StringBuilder();
+                            sb.Append($"Steam exited prematurely (exit code: {exitCode}).");
+
+                            if (crashInfo != null)
+                                sb.Append($"\n\nCrash details from Event Log:\n{crashInfo}");
+                            else
+                                sb.Append("\n\nNo crash details found in Event Log. Possible causes:\n" +
+                                          "• Antivirus blocked the DLL injection\n" +
+                                          "• GreenLuma DLL is incompatible with current Steam version\n" +
+                                          "• Steam client beta has breaking changes");
+
+                            return sb.ToString();
+                        }
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Process already gone
+                        steamProcess.Dispose();
+                        var crashInfo = GetCrashFromEventLog("steam", launchTime);
+                        return crashInfo != null
+                            ? $"Steam crashed.\n\nCrash details from Event Log:\n{crashInfo}"
+                            : "Steam process disappeared unexpectedly.";
+                    }
+                }
+
+                // Steam is still running after timeout — good sign
+                steamProcess.Dispose();
+                return null; // No crash detected
+            }
+            catch (Exception ex)
+            {
+                LogService.LogError("GreenLumaService.MonitorSteam", ex);
+                return $"Monitoring error: {ex.Message}";
+            }
+        });
+    }
+
+    private static string? GetCrashFromEventLog(string processName, DateTime since)
+    {
+        try
+        {
+            var query = new EventLogQuery("Application", PathType.LogName,
+                $"*[System[(EventID=1000 or EventID=1002) and TimeCreated[@SystemTime>='{since.ToUniversalTime():o}']]]");
+
+            using var reader = new EventLogReader(query);
+
+            EventRecord? record;
+            while ((record = reader.ReadEvent()) != null)
+            {
+                using (record)
+                {
+                    var desc = record.FormatDescription();
+                    if (desc == null) continue;
+
+                    if (desc.Contains(processName, StringComparison.OrdinalIgnoreCase) ||
+                        desc.Contains("steam", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Extract faulting module from the event
+                        var lines = desc.Split('\n');
+                        var sb = new StringBuilder();
+                        foreach (var line in lines)
+                        {
+                            var trimmed = line.Trim();
+                            if (trimmed.StartsWith("Faulting application", StringComparison.OrdinalIgnoreCase) ||
+                                trimmed.StartsWith("Faulting module", StringComparison.OrdinalIgnoreCase) ||
+                                trimmed.StartsWith("Exception code", StringComparison.OrdinalIgnoreCase) ||
+                                trimmed.StartsWith("Fault offset", StringComparison.OrdinalIgnoreCase))
+                            {
+                                sb.AppendLine(trimmed);
+                            }
+                        }
+
+                        if (sb.Length > 0)
+                            return sb.ToString().TrimEnd();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("GreenLumaService.GetCrashFromEventLog", ex);
+        }
+
+        return null;
+    }
+
+    private static string? CheckRecentDefenderDetections(string greenLumaPathLower)
+    {
+        try
+        {
+            var query = new EventLogQuery(
+                "Microsoft-Windows-Windows Defender/Operational",
+                PathType.LogName,
+                $"*[System[(EventID=1116 or EventID=1117) and TimeCreated[timediff(@SystemTime) <= 86400000]]]");
+
+            using var reader = new EventLogReader(query);
+            EventRecord? record;
+            while ((record = reader.ReadEvent()) != null)
+            {
+                using (record)
+                {
+                    var desc = record.FormatDescription();
+                    if (desc != null && desc.ToLowerInvariant().Contains(greenLumaPathLower))
+                    {
+                        // Extract the detected file name
+                        var lines = desc.Split('\n');
+                        foreach (var line in lines)
+                            if (line.Contains("file:", StringComparison.OrdinalIgnoreCase) ||
+                                line.Contains("path:", StringComparison.OrdinalIgnoreCase))
+                                return line.Trim();
+
+                        return "GreenLuma file quarantined (check Windows Security > Protection History)";
+                    }
+                }
+            }
+        }
+        catch { /* Event log may not be accessible */ }
+
+        return null;
+    }
+
+    private static string? GetDllPathFromIni(string iniPath, Config config)
+    {
+        try
+        {
+            var lines = File.ReadAllLines(iniPath);
+            foreach (var line in lines)
+            {
+                var trimmed = line.Trim();
+                if (trimmed.StartsWith("Dll", StringComparison.OrdinalIgnoreCase))
+                {
+                    var eq = trimmed.IndexOf('=');
+                    if (eq < 0 || eq >= trimmed.Length - 1) continue;
+
+                    var raw = trimmed[(eq + 1)..].Trim().Trim('"');
+                    if (string.IsNullOrWhiteSpace(raw)) continue;
+
+                    if (Path.IsPathRooted(raw))
+                        return raw;
+
+                    return Path.Combine(config.GreenLumaPath, raw);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("GreenLumaService.GetDllPathFromIni", ex);
+        }
+
+        return null;
     }
 }
