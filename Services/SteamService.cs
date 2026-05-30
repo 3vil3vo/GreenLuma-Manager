@@ -141,10 +141,27 @@ public sealed class SteamService : IDisposable
                         headerImage = headerNode["english"].Value;
 
                     List<string>? dlcList = null;
-                    var dlcListValue = common["extended"]["listofdlc"].Value;
+                    var dlcListValue = kv["extended"]["listofdlc"].Value;
                     if (!string.IsNullOrEmpty(dlcListValue))
                         dlcList = dlcListValue.Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+
+                    // Also extract DLC app IDs from depot entries (covers DLCs not in listofdlc)
+                    var depotsNode = kv["depots"];
+                    if (depotsNode != KeyValue.Invalid)
+                    {
+                        foreach (var depot in depotsNode.Children)
+                        {
+                            if (!uint.TryParse(depot.Name, out _)) continue;
+                            var dlcAppId = depot["dlcappid"].Value;
+                            if (!string.IsNullOrEmpty(dlcAppId))
+                            {
+                                dlcList ??= [];
+                                if (!dlcList.Contains(dlcAppId))
+                                    dlcList.Add(dlcAppId);
+                            }
+                        }
+                    }
 
                     results[appId] = new GameDetails(
                         appId.ToString(),
@@ -212,7 +229,7 @@ public sealed class SteamService : IDisposable
             AppId = appId.ToString()
         };
 
-        var dlcList = kv["common"]["extended"]["listofdlc"].Value;
+        var dlcList = kv["extended"]["listofdlc"].Value;
         if (!string.IsNullOrEmpty(dlcList))
             info.DlcAppIds = dlcList.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
 
@@ -317,6 +334,101 @@ public sealed class SteamService : IDisposable
         }
 
         return packageIds;
+    }
+
+    public async Task<List<uint>> ScanRangeForDlcsAsync(uint baseAppId, List<uint> knownDlcIds)
+    {
+        var foundDlcIds = new List<uint>();
+        if (knownDlcIds.Count == 0) return foundDlcIds;
+
+        try
+        {
+            await EnsureReadyAsync().ConfigureAwait(false);
+
+            // Build clusters from known DLC IDs and expand each cluster range
+            var sorted = knownDlcIds.OrderBy(x => x).ToList();
+            var clusters = new List<(uint Min, uint Max)>();
+            var clusterStart = sorted[0];
+            var clusterEnd = sorted[0];
+
+            for (var i = 1; i < sorted.Count; i++)
+            {
+                if (sorted[i] - clusterEnd <= 1000)
+                {
+                    clusterEnd = sorted[i];
+                }
+                else
+                {
+                    clusters.Add((clusterStart, clusterEnd));
+                    clusterStart = sorted[i];
+                    clusterEnd = sorted[i];
+                }
+            }
+            clusters.Add((clusterStart, clusterEnd));
+
+            // For each cluster, scan the range [min-100, max+100]
+            var idsToScan = new HashSet<uint>();
+            var knownSet = new HashSet<uint>(knownDlcIds) { baseAppId };
+
+            foreach (var (min, max) in clusters)
+            {
+                var rangeStart = min >= 100 ? min - 100 : 0;
+                var rangeEnd = max + 100;
+                for (var id = rangeStart; id <= rangeEnd; id++)
+                {
+                    if (!knownSet.Contains(id))
+                        idsToScan.Add(id);
+                }
+            }
+
+            if (idsToScan.Count == 0) return foundDlcIds;
+
+            // Batch query PICS (max ~500 per request)
+            var baseAppIdStr = baseAppId.ToString();
+            foreach (var batch in idsToScan.Chunk(500))
+            {
+                try
+                {
+                    var requests = batch.Select(id => new SteamApps.PICSRequest
+                    {
+                        ID = id, AccessToken = 0
+                    }).ToList();
+
+                    var job = _steamApps.PICSGetProductInfo(requests, []);
+                    var task = job.ToTask();
+                    if (await Task.WhenAny(task, Task.Delay(10000)) != task)
+                        continue;
+
+                    var result = await task.ConfigureAwait(false);
+                    if (result.Failed || result.Results == null) continue;
+
+                    foreach (var callback in result.Results)
+                    foreach (var (appId, appData) in callback.Apps)
+                    {
+                        var kv = appData.KeyValues;
+                        var common = kv["common"];
+                        var type = common["type"].Value;
+                        var parent = common["parent"].Value;
+
+                        if (string.Equals(parent, baseAppIdStr, StringComparison.OrdinalIgnoreCase) &&
+                            !string.IsNullOrEmpty(type))
+                        {
+                            foundDlcIds.Add(appId);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogService.LogError("SteamService.ScanRange.Batch", ex);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SteamService.ScanRangeForDlcs", ex);
+        }
+
+        return foundDlcIds;
     }
 
     private async Task EnsureReadyAsync()

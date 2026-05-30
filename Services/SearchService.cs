@@ -550,9 +550,27 @@ public class SearchService
 
             try
             {
-                var packageIds = await FetchStorePackageIdsAsync(appIdStr, ct).ConfigureAwait(false);
+                var (storePackageIds, storeDlcIds) = await FetchStorePackageAndDlcIdsAsync(appIdStr, ct).ConfigureAwait(false);
 
-                foreach (var pkgId in packageIds)
+                // Add DLCs from store API's dlc array
+                foreach (var dlcId in storeDlcIds)
+                {
+                    if (!existingIds.Contains(dlcId))
+                    {
+                        hiddenDlcIds.Add(dlcId);
+                        existingIds.Add(dlcId);
+                        if (parentName != null)
+                            dlcParentName.TryAdd(dlcId, parentName);
+                    }
+                }
+
+                // Merge PICS-based packages with store packages
+                var picsPackageIds = await SteamService.Instance.GetAppPackageIdsAsync(appIdNum).ConfigureAwait(false);
+                var allPackageIds = new HashSet<uint>(storePackageIds);
+                foreach (var pkgId in picsPackageIds)
+                    allPackageIds.Add(pkgId);
+
+                foreach (var pkgId in allPackageIds)
                 {
                     if (ct.IsCancellationRequested) return;
 
@@ -573,6 +591,83 @@ public class SearchService
             catch (Exception ex)
             {
                 LogService.LogError("SearchService.ExpandPackages", ex);
+            }
+        }
+
+        // 3. Expand from app list cache — find apps whose name starts with a base game's name
+        if (_appListCache != null)
+        {
+            var gameNames = new Dictionary<string, string>(); // name → parent name
+            foreach (var appIdStr in gameAppIds)
+            {
+                if (detailsMap.TryGetValue(appIdStr, out var d) && !string.IsNullOrEmpty(d.Name))
+                    gameNames.TryAdd(d.Name.ToLowerInvariant(), d.Name);
+            }
+
+            foreach (var app in _appListCache)
+            {
+                if (existingIds.Contains(app.AppId)) continue;
+
+                foreach (var (gameNameLower, gameName) in gameNames)
+                {
+                    if (app.NameLower.StartsWith(gameNameLower) && app.NameLower.Length > gameNameLower.Length)
+                    {
+                        // Verify it's a suffix starting with a separator (space, dash, colon, etc.)
+                        var charAfter = app.NameLower[gameNameLower.Length];
+                        if (charAfter is ' ' or '-' or ':' or '–' or '—' or '(' or '[')
+                        {
+                            hiddenDlcIds.Add(app.AppId);
+                            existingIds.Add(app.AppId);
+                            dlcParentName.TryAdd(app.AppId, gameName);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. PICS range scan — scan IDs near known DLCs to find unlisted ones via parent field
+        foreach (var appIdStr in gameAppIds)
+        {
+            if (ct.IsCancellationRequested) return;
+            if (!uint.TryParse(appIdStr, out var baseAppId)) continue;
+
+            // Gather all known DLC IDs for this base game
+            var knownDlcIds = new List<uint>();
+            if (detailsMap.TryGetValue(appIdStr, out var baseDetails) && baseDetails.ListOfDlc != null)
+                foreach (var dlcId in baseDetails.ListOfDlc)
+                    if (uint.TryParse(dlcId, out var dlcIdNum))
+                        knownDlcIds.Add(dlcIdNum);
+
+            // Also include any IDs we already discovered in previous steps
+            foreach (var id in hiddenDlcIds)
+                if (uint.TryParse(id, out var idNum))
+                    knownDlcIds.Add(idNum);
+
+            if (knownDlcIds.Count == 0) continue;
+
+            var parentName = detailsMap.TryGetValue(appIdStr, out var pd) ? pd.Name : null;
+
+            try
+            {
+                var rangeDlcIds = await SteamService.Instance.ScanRangeForDlcsAsync(baseAppId, knownDlcIds)
+                    .ConfigureAwait(false);
+
+                foreach (var dlcId in rangeDlcIds)
+                {
+                    var dlcIdStr = dlcId.ToString();
+                    if (!existingIds.Contains(dlcIdStr))
+                    {
+                        hiddenDlcIds.Add(dlcIdStr);
+                        existingIds.Add(dlcIdStr);
+                        if (parentName != null)
+                            dlcParentName.TryAdd(dlcIdStr, parentName);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.LogError("SearchService.ExpandRangeScan", ex);
             }
         }
 
@@ -645,30 +740,37 @@ public class SearchService
         }
     }
 
-    private static async Task<List<uint>> FetchStorePackageIdsAsync(string appId, CancellationToken ct = default)
+    private static async Task<(List<uint> PackageIds, List<string> DlcIds)> FetchStorePackageAndDlcIdsAsync(
+        string appId, CancellationToken ct = default)
     {
         var packageIds = new List<uint>();
+        var dlcIds = new List<string>();
         try
         {
             var url = $"https://store.steampowered.com/api/appdetails?appids={Uri.EscapeDataString(appId)}&cc=US&l=english";
             var response = await HttpClientProvider.Default.GetStringAsync(url, ct).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(response);
 
-            if (!doc.RootElement.TryGetProperty(appId, out var appElem)) return packageIds;
-            if (!appElem.TryGetProperty("success", out var success) || !success.GetBoolean()) return packageIds;
-            if (!appElem.TryGetProperty("data", out var data)) return packageIds;
-            if (!data.TryGetProperty("packages", out var packages)) return packageIds;
+            if (!doc.RootElement.TryGetProperty(appId, out var appElem)) return (packageIds, dlcIds);
+            if (!appElem.TryGetProperty("success", out var success) || !success.GetBoolean()) return (packageIds, dlcIds);
+            if (!appElem.TryGetProperty("data", out var data)) return (packageIds, dlcIds);
 
-            foreach (var pkg in packages.EnumerateArray())
-                if (pkg.TryGetUInt32(out var pkgId))
-                    packageIds.Add(pkgId);
+            if (data.TryGetProperty("packages", out var packages))
+                foreach (var pkg in packages.EnumerateArray())
+                    if (pkg.TryGetUInt32(out var pkgId))
+                        packageIds.Add(pkgId);
+
+            if (data.TryGetProperty("dlc", out var dlcArray))
+                foreach (var dlc in dlcArray.EnumerateArray())
+                    if (dlc.TryGetUInt32(out var dlcId))
+                        dlcIds.Add(dlcId.ToString());
         }
         catch (Exception ex)
         {
-            LogService.LogError("SearchService.FetchStorePackageIds", ex);
+            LogService.LogError("SearchService.FetchStorePackageAndDlcIds", ex);
         }
 
-        return packageIds;
+        return (packageIds, dlcIds);
     }
 
     public static async Task<Dictionary<string, GameDetails>> FetchStoreAppDetailsAsync(
