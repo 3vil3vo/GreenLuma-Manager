@@ -86,3 +86,8 @@ UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/
 *.rptproj.bak
+
+# OpenCode / AI Agents and Tools
+.opencode/
+.sisyphus/
+logs/
