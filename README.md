@@ -2,7 +2,7 @@
 
 A modern desktop app for managing your GreenLuma AppList. No more entering app IDs one by one - just search, click, and launch.
 
-![Version](https://img.shields.io/github/v/release/3vil3vo/GreenLuma-Manager?label=version)
+![Version](https://img.shields.io/github/v/release/FroggMaster/GreenLuma-Manager?label=version)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![.NET](https://img.shields.io/badge/.NET-10.0-purple)
 
@@ -38,7 +38,7 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/3vil3vo/GreenLuma-Manager.git
+   git clone https://github.com/FroggMaster/GreenLuma-Manager.git
    cd GreenLuma-Manager
    ```
 
@@ -101,7 +101,9 @@ This is an educational project. Use it responsibly and at your own risk. We're n
 
 ## Author
 
-Built with ☕ by [3vil3vo](https://github.com/3vil3vo)
+Built with ☕ by [FroggMaster](https://github.com/FroggMaster)
+
+*Original base code by [3vil3vo](https://github.com/3vil3vo)*
 
 ## Need Help?
 

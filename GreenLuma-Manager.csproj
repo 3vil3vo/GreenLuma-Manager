@@ -12,10 +12,10 @@
     <Version>1.0.0-rc2.12</Version>
     <FileVersion>0.0.0.2</FileVersion>
     <AssemblyVersion>0.0.0.2</AssemblyVersion>
-    <Copyright>Copyright © 3vil3vo 2026</Copyright>
+    <Copyright>Copyright © FroggMaster 2026</Copyright>
     <PackageIcon>icon.ico</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com/3vil3vo/GreenLuma-Manager</RepositoryUrl>
+    <RepositoryUrl>https://github.com/FroggMaster/GreenLuma-Manager</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PlatformTarget>x64</PlatformTarget>

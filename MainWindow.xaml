@@ -1070,7 +1070,7 @@
                         Margin="0,0,8,0"
                         Click="GitHubButton_Click"
                         Style="{StaticResource HeaderBtn}"
-                        ToolTip="GitHub (3vil3vo)">
+                        ToolTip="GitHub (FroggMaster)">
                         <StackPanel Orientation="Horizontal">
                             <Path
                                 Width="16"
@@ -1084,7 +1084,7 @@
                                 VerticalAlignment="Center"
                                 FontSize="13"
                                 Foreground="{StaticResource TextSecond}"
-                                Text="3vil3vo" />
+                                Text="FroggMaster" />
                         </StackPanel>
                     </Button>
 
@@ -1954,7 +1954,7 @@
                     VerticalAlignment="Center"
                     FontSize="11"
                     Foreground="{StaticResource TextTert}"
-                    Text="Copyright © 3vil3vo 2026" />
+                    Text="Copyright © FroggMaster 2026" />
             </Grid>
         </Border>
 

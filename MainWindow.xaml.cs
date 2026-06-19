@@ -200,7 +200,7 @@ public partial class MainWindow
 
     private void GitHubButton_Click(object sender, RoutedEventArgs e)
     {
-        LaunchBrowser("https://github.com/3vil3vo/GreenLuma-Manager");
+        LaunchBrowser("https://github.com/FroggMaster/GreenLuma-Manager");
     }
 
     private async void SettingsButton_Click(object? sender, RoutedEventArgs? e)

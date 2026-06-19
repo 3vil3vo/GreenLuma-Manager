@@ -8,7 +8,7 @@ namespace GreenLuma_Manager.Services;
 
 public partial class UpdateService
 {
-    private const string GitHubApiUrl = "https://api.github.com/repos/3vil3vo/GreenLuma-Manager/releases/latest";
+    private const string GitHubApiUrl = "https://api.github.com/repos/FroggMaster/GreenLuma-Manager/releases/latest";
     private static readonly string[] RcSeparator = ["-rc"];
 
     private static readonly HttpClient Client;
