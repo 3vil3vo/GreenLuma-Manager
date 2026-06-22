@@ -1281,8 +1281,9 @@
                             <Grid>
                                 <DataGrid
                                     x:Name="DgResults"
+                                    AutoGenerateColumns="False"
                                     CanUserSortColumns="True"
-                                    MouseDoubleClick="ResultRow_DoubleClick"
+                                    MouseDoubleClick="SearchResult_MouseDoubleClick"
                                     Style="{StaticResource ResultsGrid}"
                                     VerticalScrollBarVisibility="Hidden"
                                     Visibility="Collapsed">
@@ -1438,7 +1439,7 @@
 
                                         <MenuItem
                                             Margin="0,2,0,0"
-                                            Click="AddProfileButton_Click"
+                                            Click="CreateProfileButton_Click"
                                             Header="Add Profile"
                                             Style="{StaticResource ContextItem}">
                                             <MenuItem.Icon>
@@ -1878,9 +1879,9 @@
                                     x:Name="TglStealthMode"
                                     Grid.Column="2"
                                     VerticalAlignment="Center"
-                                    Checked="StealthMode_Changed"
+                                    Checked="NoHook_Toggled"
                                     Style="{StaticResource SwitchToggle}"
-                                    Unchecked="StealthMode_Changed" />
+                                    Unchecked="NoHook_Toggled" />
                             </Grid>
                         </Border>
 
@@ -1923,6 +1924,60 @@
                             </StackPanel>
                         </Button>
                     </StackPanel>
+
+                    <!-- Progress overlay for AppList loading -->
+                    <Border
+                        x:Name="PnlAppListProgress"
+                        Grid.RowSpan="4"
+                        Background="#CC0F0F0F"
+                        CornerRadius="12"
+                        Visibility="Collapsed">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <Trigger Property="Visibility" Value="Visible">
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation
+                                                        Storyboard.TargetProperty="Opacity"
+                                                        From="0"
+                                                        To="1"
+                                                        Duration="0:0:0.25">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <CubicEase EasingMode="EaseOut" />
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.EnterActions>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <StackPanel
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Orientation="Vertical">
+                                <ProgressBar
+                                    x:Name="AppListProgressBar"
+                                    Width="280"
+                                    Height="4"
+                                    Margin="0,0,0,16"
+                                    Background="{StaticResource Border}"
+                                    BorderThickness="0"
+                                    Foreground="{StaticResource Accent}"
+                                    IsIndeterminate="True" />
+                                <TextBlock
+                                    x:Name="TxtAppListProgress"
+                                    FontSize="13"
+                                    Foreground="{StaticResource TextSecond}"
+                                    HorizontalAlignment="Center"
+                                    Text="Loading..." />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>
