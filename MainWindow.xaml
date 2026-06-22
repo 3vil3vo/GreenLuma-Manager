@@ -461,7 +461,7 @@
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="Padding" Value="12,8" />
-                <Setter Property="Height" Value="32" />
+                <Setter Property="Height" Value="36" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -1062,7 +1062,7 @@
 
                 <StackPanel
                     Grid.Column="2"
-                    Height="40"
+                    Height="44"
                     VerticalAlignment="Center"
                     Orientation="Horizontal">
 
