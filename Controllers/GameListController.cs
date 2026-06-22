@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using GreenLuma_Manager.Models;
@@ -42,7 +43,12 @@ public class GameListController
 
     public void AddGame(Game game)
     {
-        Games.Add(game);
+        // Insert in alphabetical order by name
+        var index = 0;
+        while (index < Games.Count && string.Compare(Games[index].Name, game.Name, StringComparison.OrdinalIgnoreCase) <= 0)
+            index++;
+
+        Games.Insert(index, game);
         _notificationManager.UpdateGameCount(Games.Count);
         UpdateGameListState();
     }
@@ -57,7 +63,7 @@ public class GameListController
     public void LoadGames(IEnumerable<Game> games)
     {
         Games.Clear();
-        foreach (var game in games)
+        foreach (var game in games.OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase))
             Games.Add(game);
 
         _notificationManager.UpdateGameCount(Games.Count);
