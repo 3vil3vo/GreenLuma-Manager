@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using GreenLuma_Manager.Models;
@@ -19,13 +19,14 @@ public class ProfileService
         try
         {
             EnsureProfilesDirectoryExists();
+            TryImportFromGlrManager();
             TryMigrateProfilesFromOldVersion();
             LoadProfilesFromDirectory(profiles);
             if (profiles.Count == 0) return CreateDefaultProfile(profiles);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.LoadAll", ex);
         }
 
         return profiles;
@@ -52,9 +53,9 @@ public class ProfileService
                 var profile = DeserializeProfile(File.ReadAllText(file, Encoding.UTF8));
                 if (profile != null) profiles.Add(profile);
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("ProfileService.LoadFromDir", ex);
             }
     }
 
@@ -69,8 +70,9 @@ public class ProfileService
             var json = File.ReadAllText(filePath, Encoding.UTF8);
             return DeserializeProfile(json);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ProfileService.Load", ex);
             return null;
         }
     }
@@ -84,9 +86,9 @@ public class ProfileService
             var json = SerializeProfile(profile);
             File.WriteAllText(filePath, json, Encoding.UTF8);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.Save", ex);
         }
     }
 
@@ -100,9 +102,9 @@ public class ProfileService
             var filePath = GetProfileFilePath(profileName);
             if (File.Exists(filePath)) File.Delete(filePath);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.Delete", ex);
         }
     }
 
@@ -113,9 +115,9 @@ public class ProfileService
             var json = SerializeProfile(profile);
             File.WriteAllText(destinationPath, json, Encoding.UTF8);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.Export", ex);
         }
     }
 
@@ -126,8 +128,9 @@ public class ProfileService
             var json = File.ReadAllText(sourcePath, Encoding.UTF8);
             return DeserializeProfile(json);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ProfileService.Import", ex);
             return null;
         }
     }
@@ -144,21 +147,61 @@ public class ProfileService
         {
             return JsonSerializer.Deserialize<Profile>(json);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("ProfileService.DeserializeProfile", ex);
             return null;
         }
     }
 
     private static string SerializeProfile(Profile profile)
     {
-        return JsonSerializer.Serialize(profile);
+        return JsonSerializer.Serialize(profile, new JsonSerializerOptions { WriteIndented = true });
     }
 
     private static string SanitizeFileName(string name)
     {
         var invalidChars = Path.GetInvalidFileNameChars();
-        return new string([.. name.Select(c => invalidChars.Contains(c) ? '_' : c)]);
+        var sanitized = new string([.. name.Select(c => invalidChars.Contains(c) ? '_' : c)]);
+        sanitized = sanitized.Replace("..", "_");
+        return Path.GetFileName(sanitized);
+    }
+
+    private static void TryImportFromGlrManager()
+    {
+        try
+        {
+            var existingFiles = Directory.GetFiles(ProfilesDir, "*.json");
+            if (existingFiles.Length > 0) return;
+
+            var glrProfilesDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "GLR_Manager",
+                "Profiles");
+
+            if (!Directory.Exists(glrProfilesDir)) return;
+
+            var glrFiles = Directory.GetFiles(glrProfilesDir, "*.json");
+            if (glrFiles.Length == 0) return;
+
+            foreach (var file in glrFiles)
+                try
+                {
+                    var fileName = Path.GetFileName(file);
+                    var destPath = Path.Combine(ProfilesDir, SanitizeFileName(fileName));
+
+                    if (!File.Exists(destPath))
+                        File.Copy(file, destPath);
+                }
+                catch (Exception ex)
+                {
+                    LogService.LogError("ProfileService.ImportGlrFile", ex);
+                }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("ProfileService.TryImportFromGlrManager", ex);
+        }
     }
 
     private static void TryMigrateProfilesFromOldVersion()
@@ -167,7 +210,11 @@ public class ProfileService
         {
             if (!Directory.Exists(ProfilesDir)) return;
 
+            var migratedFlag = Path.Combine(ProfilesDir, ".migrated");
+            if (File.Exists(migratedFlag)) return;
+
             var filesToMigrate = Directory.GetFiles(ProfilesDir, "*.json");
+            var anyMigrated = false;
 
             foreach (var file in filesToMigrate)
                 try
@@ -196,15 +243,19 @@ public class ProfileService
                     };
 
                     Save(profile);
+                    anyMigrated = true;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    LogService.LogError("ProfileService.MigrateFile", ex);
                 }
+
+            if (anyMigrated)
+                File.WriteAllText(migratedFlag, string.Empty);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("ProfileService.TryMigrateProfiles", ex);
         }
     }
 }

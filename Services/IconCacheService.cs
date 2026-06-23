@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Net.Http;
 using System.Windows.Media.Imaging;
 
 namespace GreenLuma_Manager.Services;
@@ -10,15 +9,6 @@ public class IconCacheService
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "GLM_Manager",
         "icons");
-
-    private static readonly HttpClient Client = new();
-
-    static IconCacheService()
-    {
-        Client.DefaultRequestHeaders.Add("User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-        Client.Timeout = TimeSpan.FromSeconds(10);
-    }
 
     public static async Task<string?> DownloadAndCacheIconAsync(string appId, string iconUrl)
     {
@@ -42,9 +32,9 @@ public class IconCacheService
                 return filePath;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("IconCacheService.DownloadAndCache", ex);
         }
 
         return null;
@@ -173,9 +163,9 @@ public class IconCacheService
                 await File.WriteAllBytesAsync(filePath, data).ConfigureAwait(false);
                 return filePath;
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("IconCacheService.CacheCandidate", ex);
             }
 
         if (isDlc && !string.IsNullOrEmpty(details.ParentAppId) && uint.TryParse(details.ParentAppId, out var parentId))
@@ -195,9 +185,9 @@ public class IconCacheService
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                LogService.LogError("IconCacheService.CacheParent", ex);
             }
 
         return null;
@@ -213,8 +203,9 @@ public class IconCacheService
             var frame = decoder.Frames[0];
             return frame.PixelWidth >= minSize;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("IconCacheService.IsValidImageSize", ex);
             return false;
         }
     }
@@ -226,15 +217,16 @@ public class IconCacheService
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
-                using var resp = await Client.GetAsync(url, cts.Token).ConfigureAwait(false);
+                using var resp = await HttpClientProvider.Default.GetAsync(url, cts.Token).ConfigureAwait(false);
                 if (!resp.IsSuccessStatusCode)
                     return null;
                 var data = await resp.Content.ReadAsByteArrayAsync(cts.Token).ConfigureAwait(false);
                 if (data.Length > 0)
                     return data;
             }
-            catch
+            catch (Exception ex)
             {
+                LogService.LogError("IconCacheService.TryDownload", ex);
                 if (attempt == maxAttempts)
                     break;
             }
@@ -264,9 +256,9 @@ public class IconCacheService
                     return filePath;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("IconCacheService.GetCachedIconPath", ex);
         }
 
         return null;
@@ -292,9 +284,9 @@ public class IconCacheService
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("IconCacheService.DeleteCachedIcon", ex);
         }
     }
 
@@ -311,14 +303,14 @@ public class IconCacheService
                     if (!validAppIds.Contains(name))
                         File.Delete(file);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    LogService.LogError("IconCacheService.DeleteUnusedIcon", ex);
                 }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("IconCacheService.DeleteUnusedIcons", ex);
         }
     }
 
@@ -339,8 +331,9 @@ public class IconCacheService
             if (lower.Contains(".webp")) return ".webp";
             return ".jpg";
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("IconCacheService.GetImageExtension", ex);
             return ".jpg";
         }
     }

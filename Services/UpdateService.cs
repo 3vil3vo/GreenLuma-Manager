@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
 using System.Text.RegularExpressions;
 using GreenLuma_Manager.Models;
 
@@ -9,15 +8,9 @@ namespace GreenLuma_Manager.Services;
 public partial class UpdateService
 {
     private const string GitHubApiUrl = "https://api.github.com/repos/3vil3vo/GreenLuma-Manager/releases/latest";
+    private const string AllowedDownloadHost = "github.com";
+    private const string AllowedDownloadPathPrefix = "/3vil3vo/GreenLuma-Manager/";
     private static readonly string[] RcSeparator = ["-rc"];
-
-    private static readonly HttpClient Client;
-
-    static UpdateService()
-    {
-        Client = new HttpClient();
-        Client.DefaultRequestHeaders.Add("User-Agent", "GreenLuma-Manager");
-    }
 
     private static string CurrentVersion => MainWindow.Version;
 
@@ -34,11 +27,12 @@ public partial class UpdateService
     {
         try
         {
-            var response = await Client.GetStringAsync(GitHubApiUrl);
+            var response = await HttpClientProvider.GitHub.GetStringAsync(GitHubApiUrl).ConfigureAwait(false);
             return ParseUpdateInfo(response);
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("UpdateService.CheckForUpdates", ex);
             return null;
         }
     }
@@ -147,12 +141,50 @@ public partial class UpdateService
     {
         try
         {
+            if (!IsValidDownloadUrl(downloadUrl))
+            {
+                LogService.LogError("UpdateService.PerformAutoUpdate",
+                    new InvalidOperationException($"Blocked untrusted download URL: {downloadUrl}"));
+                return false;
+            }
+
             var currentExePath = Environment.ProcessPath!;
-            var tempExePath = await DownloadUpdate(downloadUrl);
+            var tempExePath = await DownloadUpdate(downloadUrl).ConfigureAwait(false);
+
+            if (!IsValidPeFile(tempExePath))
+            {
+                File.Delete(tempExePath);
+                LogService.LogError("UpdateService.PerformAutoUpdate",
+                    new InvalidOperationException("Downloaded file is not a valid PE executable"));
+                return false;
+            }
 
             CreateAndExecuteUpdateScript(tempExePath, currentExePath);
 
             return true;
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("UpdateService.PerformAutoUpdate", ex);
+            return false;
+        }
+    }
+
+    private static bool IsValidDownloadUrl(string url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+               uri.Scheme == Uri.UriSchemeHttps &&
+               uri.Host.EndsWith(AllowedDownloadHost, StringComparison.OrdinalIgnoreCase) &&
+               uri.AbsolutePath.StartsWith(AllowedDownloadPathPrefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsValidPeFile(string filePath)
+    {
+        try
+        {
+            var header = new byte[2];
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return fs.Read(header, 0, 2) == 2 && header[0] == 0x4D && header[1] == 0x5A;
         }
         catch
         {
@@ -165,11 +197,11 @@ public partial class UpdateService
         var tempDir = Path.GetTempPath();
         var tempExePath = Path.Combine(tempDir, "GreenLumaManager_Update.exe");
 
-        using var response = await Client.GetAsync(downloadUrl);
+        using var response = await HttpClientProvider.GitHub.GetAsync(downloadUrl).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         await using var fileStream = new FileStream(tempExePath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await response.Content.CopyToAsync(fileStream);
+        await response.Content.CopyToAsync(fileStream).ConfigureAwait(false);
 
         return tempExePath;
     }
