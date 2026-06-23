@@ -279,6 +279,7 @@
                                     <Border
                                         x:Name="DropDownBorder"
                                         MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="200"
                                         Margin="0,4,0,0"
                                         Padding="4"
                                         Background="{StaticResource SurfaceBg}"
@@ -298,13 +299,13 @@
                                             <ScaleTransform ScaleX="1" ScaleY="1" />
                                         </Border.RenderTransform>
                                         <ScrollViewer
-                                            MaxHeight="200"
                                             HorizontalScrollBarVisibility="Disabled"
                                             VerticalScrollBarVisibility="Auto">
                                             <ScrollViewer.Resources>
                                                 <ResourceDictionary>
                                                     <ResourceDictionary.MergedDictionaries>
-                                                        <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
+                                                        <ResourceDictionary
+                                                            Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
                                                     </ResourceDictionary.MergedDictionaries>
                                                 </ResourceDictionary>
                                             </ScrollViewer.Resources>
@@ -531,6 +532,39 @@
                     <Trigger Property="IsMouseOver" Value="True">
                         <Setter Property="Background" Value="{StaticResource Danger}" />
                         <Setter Property="Foreground" Value="White" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="FilterPill" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource TextTert}" />
+                <Setter Property="Padding" Value="12,6" />
+                <Setter Property="Margin" Value="0,0,6,0" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8">
+                                <ContentPresenter
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsChecked" Value="True">
+                        <Setter Property="Background" Value="{StaticResource SurfaceBg}" />
+                        <Setter Property="Foreground" Value="{StaticResource Text}" />
+                    </Trigger>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Foreground" Value="{StaticResource TextSecond}" />
                     </Trigger>
                 </Style.Triggers>
             </Style>
@@ -1004,6 +1038,10 @@
             Key="S"
             Command="{Binding ToggleStealthCommand}"
             Modifiers="Control+Shift" />
+        <KeyBinding
+            Key="Tab"
+            Command="{Binding CycleProfileCommand}"
+            Modifiers="Control" />
     </Window.InputBindings>
 
     <Grid>
@@ -1256,10 +1294,80 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <Grid Grid.Row="0" Margin="0,0,0,16">
-                            <TextBlock Style="{StaticResource HeaderTxt}" Text="RESULTS" />
+                        <Grid
+                            x:Name="PnlResultsHeader"
+                            Grid.Row="0"
+                            Margin="0,0,0,16"
+                            Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource HeaderTxt}"
+                                Text="RESULTS" />
+                            <StackPanel
+                                Grid.Column="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                                <RadioButton
+                                    x:Name="FilterAll"
+                                    Checked="ResultFilter_Changed"
+                                    Content="All"
+                                    GroupName="ResultFilter"
+                                    IsChecked="True"
+                                    Style="{StaticResource FilterPill}" />
+                                <RadioButton
+                                    x:Name="FilterGames"
+                                    Checked="ResultFilter_Changed"
+                                    Content="Games"
+                                    GroupName="ResultFilter"
+                                    Style="{StaticResource FilterPill}" />
+                                <RadioButton
+                                    x:Name="FilterDlc"
+                                    Checked="ResultFilter_Changed"
+                                    Content="DLC"
+                                    GroupName="ResultFilter"
+                                    Style="{StaticResource FilterPill}" />
+                                <RadioButton
+                                    x:Name="FilterSoftware"
+                                    Checked="ResultFilter_Changed"
+                                    Content="Software"
+                                    GroupName="ResultFilter"
+                                    Style="{StaticResource FilterPill}" />
+                                <Border
+                                    Width="1"
+                                    Height="20"
+                                    Margin="6,0"
+                                    VerticalAlignment="Center"
+                                    Background="{StaticResource Border}" />
+                                <ToggleButton
+                                    x:Name="BtnHideAdded"
+                                    Checked="ResultFilter_Changed"
+                                    Style="{StaticResource FilterPill}"
+                                    ToolTip="Hide added games"
+                                    Unchecked="ResultFilter_Changed">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path
+                                            Width="12"
+                                            Height="12"
+                                            Margin="0,0,5,0"
+                                            VerticalAlignment="Center"
+                                            Data="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"
+                                            Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                            Stretch="Uniform" />
+                                        <TextBlock VerticalAlignment="Center" Text="Hide Added" />
+                                    </StackPanel>
+                                </ToggleButton>
+                            </StackPanel>
                             <Border
+                                Grid.Column="2"
                                 Padding="12,6"
+                                VerticalAlignment="Center"
                                 HorizontalAlignment="Right"
                                 Background="{StaticResource SurfaceBg}"
                                 CornerRadius="12">
@@ -1312,14 +1420,43 @@
                                             CanUserSort="True"
                                             Header="TYPE"
                                             IsReadOnly="True" />
-                                        <DataGridTemplateColumn Width="120" Header="">
+                                        <DataGridTemplateColumn Width="140">
+                                            <DataGridTemplateColumn.HeaderStyle>
+                                                <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"
+                                                       TargetType="DataGridColumnHeader">
+                                                    <Setter Property="Padding" Value="4,4" />
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                </Style>
+                                            </DataGridTemplateColumn.HeaderStyle>
+                                            <DataGridTemplateColumn.Header>
+                                                <Button
+                                                    x:Name="BtnAddAll"
+                                                    BorderThickness="0"
+                                                    Click="AddAllGames_Click"
+                                                    Content="ADD ALL"
+                                                    Style="{StaticResource AddBtn}"
+                                                    Visibility="Collapsed" />
+                                            </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
+                                                <DataTemplate DataType="models:Game">
                                                     <Button
                                                         Click="AddGameButton_Click"
-                                                        Content="ADD"
-                                                        Style="{StaticResource AddBtn}"
-                                                        Tag="{Binding}" />
+                                                        Tag="{Binding}">
+                                                        <Button.Style>
+                                                            <Style BasedOn="{StaticResource AddBtn}"
+                                                                   TargetType="Button">
+                                                                <Setter Property="Content" Value="ADD" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsInProfile}"
+                                                                            Value="True">
+                                                                        <Setter Property="Content" Value="ADDED" />
+                                                                        <Setter Property="Opacity" Value="0.5" />
+                                                                        <Setter Property="IsEnabled" Value="False" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -1502,7 +1639,8 @@
                                                     <Setter Property="Template">
                                                         <Setter.Value>
                                                             <ControlTemplate TargetType="Separator">
-                                                                <Border Height="{TemplateBinding Height}" Background="{TemplateBinding Background}" />
+                                                                <Border Height="{TemplateBinding Height}"
+                                                                        Background="{TemplateBinding Background}" />
                                                             </ControlTemplate>
                                                         </Setter.Value>
                                                     </Setter>
@@ -1590,7 +1728,8 @@
                                     <ScrollViewer.Resources>
                                         <ResourceDictionary>
                                             <ResourceDictionary.MergedDictionaries>
-                                                <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
+                                                <ResourceDictionary
+                                                    Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
                                             </ResourceDictionary.MergedDictionaries>
                                         </ResourceDictionary>
                                     </ScrollViewer.Resources>
@@ -1607,14 +1746,48 @@
                                                     Padding="16,12"
                                                     Background="{StaticResource SurfaceBg}"
                                                     CornerRadius="8">
+                                                    <Border.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem
+                                                                Click="MoveGameUp_Click"
+                                                                Header="Move Up"
+                                                                Style="{DynamicResource ContextItem}">
+                                                                <MenuItem.Icon>
+                                                                    <Path
+                                                                        Width="16"
+                                                                        Height="16"
+                                                                        Data="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"
+                                                                        Fill="{DynamicResource TextSecond}"
+                                                                        Stretch="Uniform" />
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                            <MenuItem
+                                                                Click="MoveGameDown_Click"
+                                                                Header="Move Down"
+                                                                Style="{DynamicResource ContextItem}">
+                                                                <MenuItem.Icon>
+                                                                    <Path
+                                                                        Width="16"
+                                                                        Height="16"
+                                                                        Data="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"
+                                                                        Fill="{DynamicResource TextSecond}"
+                                                                        Stretch="Uniform" />
+                                                                </MenuItem.Icon>
+                                                            </MenuItem>
+                                                        </ContextMenu>
+                                                    </Border.ContextMenu>
                                                     <Border.Style>
                                                         <Style TargetType="Border">
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsEditing}" Value="False" />
+                                                                <DataTrigger Binding="{Binding IsEditing}"
+                                                                             Value="False" />
                                                                 <MultiDataTrigger>
                                                                     <MultiDataTrigger.Conditions>
-                                                                        <Condition Binding="{Binding IsEditing}" Value="False" />
-                                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                                                                        <Condition Binding="{Binding IsEditing}"
+                                                                                Value="False" />
+                                                                        <Condition
+                                                                            Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
+                                                                            Value="True" />
                                                                     </MultiDataTrigger.Conditions>
                                                                     <Setter Property="Background" Value="#FF1E1E1E" />
                                                                 </MultiDataTrigger>
@@ -1646,16 +1819,24 @@
                                                                     Text="?" />
                                                                 <Image Stretch="Fill">
                                                                     <Image.Source>
-                                                                        <Binding Converter="{StaticResource IconUrlConverter}" Path="IconUrl" />
+                                                                        <Binding
+                                                                            Converter="{StaticResource IconUrlConverter}"
+                                                                            Path="IconUrl" />
                                                                     </Image.Source>
                                                                     <Image.Style>
                                                                         <Style TargetType="Image">
                                                                             <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding IconUrl}" Value="">
-                                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                                <DataTrigger
+                                                                                    Binding="{Binding IconUrl}"
+                                                                                    Value="">
+                                                                                    <Setter Property="Visibility"
+                                                                                        Value="Collapsed" />
                                                                                 </DataTrigger>
-                                                                                <DataTrigger Binding="{Binding IconUrl}" Value="{x:Null}">
-                                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                                <DataTrigger
+                                                                                    Binding="{Binding IconUrl}"
+                                                                                    Value="{x:Null}">
+                                                                                    <Setter Property="Visibility"
+                                                                                        Value="Collapsed" />
                                                                                 </DataTrigger>
                                                                             </Style.Triggers>
                                                                         </Style>
@@ -1685,10 +1866,14 @@
                                                                         <Style TargetType="TextBlock">
                                                                             <Setter Property="Opacity" Value="1" />
                                                                             <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                                <DataTrigger
+                                                                                    Binding="{Binding IsEditing}"
+                                                                                    Value="True">
+                                                                                    <Setter Property="Visibility"
+                                                                                        Value="Collapsed" />
                                                                                 </DataTrigger>
-                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                <Trigger Property="IsMouseOver"
+                                                                                    Value="True">
                                                                                     <Trigger.EnterActions>
                                                                                         <BeginStoryboard>
                                                                                             <Storyboard>
@@ -1728,10 +1913,14 @@
                                                                     Opacity="0">
                                                                     <Border.Style>
                                                                         <Style TargetType="Border">
-                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                            <Setter Property="Visibility"
+                                                                                    Value="Collapsed" />
                                                                             <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                                <DataTrigger
+                                                                                    Binding="{Binding IsEditing}"
+                                                                                    Value="True">
+                                                                                    <Setter Property="Visibility"
+                                                                                        Value="Visible" />
                                                                                     <DataTrigger.EnterActions>
                                                                                         <BeginStoryboard>
                                                                                             <Storyboard>
@@ -1741,7 +1930,8 @@
                                                                                                     To="1"
                                                                                                     Duration="0:0:0.2">
                                                                                                     <DoubleAnimation.EasingFunction>
-                                                                                                        <CubicEase EasingMode="EaseOut" />
+                                                                                                        <CubicEase
+                                                                                                            EasingMode="EaseOut" />
                                                                                                     </DoubleAnimation.EasingFunction>
                                                                                                 </DoubleAnimation>
                                                                                             </Storyboard>
@@ -1771,7 +1961,7 @@
                                                                         FontWeight="Medium"
                                                                         Foreground="{StaticResource Text}"
                                                                         KeyDown="GameNameEdit_KeyDown"
-                                                                        IsVisibleChanged="GameNameEdit_IsVisibleChanged" 
+                                                                        IsVisibleChanged="GameNameEdit_IsVisibleChanged"
                                                                         LostFocus="GameNameEdit_LostFocus"
                                                                         Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                                                                 </Border>
@@ -1790,9 +1980,11 @@
                                                             Content="REMOVE"
                                                             Tag="{Binding}">
                                                             <Button.Style>
-                                                                <Style BasedOn="{StaticResource RemoveBtn}" TargetType="Button">
+                                                                <Style BasedOn="{StaticResource RemoveBtn}"
+                                                                       TargetType="Button">
                                                                     <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                                        <DataTrigger Binding="{Binding IsEditing}"
+                                                                                Value="True">
                                                                             <Setter Property="Opacity" Value="0.3" />
                                                                             <Setter Property="IsEnabled" Value="False" />
                                                                         </DataTrigger>
@@ -1947,6 +2139,20 @@
                         FontSize="12"
                         Foreground="{StaticResource TextSecond}"
                         Text="Ready" />
+                    <TextBlock
+                        x:Name="TxtVersionDot"
+                        Margin="6,0,0,0"
+                        FontSize="12"
+                        Foreground="{StaticResource TextTert}"
+                        Text="•"
+                        Visibility="Collapsed" />
+                    <TextBlock
+                        x:Name="TxtGreenLumaVersionStatus"
+                        Margin="6,0,0,0"
+                        FontSize="12"
+                        Foreground="{StaticResource TextTert}"
+                        Text=""
+                        Visibility="Collapsed" />
                 </StackPanel>
 
                 <TextBlock
