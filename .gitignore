@@ -15,6 +15,9 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# JetBrains Rider
+.idea/
+
 # Visual Studio cache/options
 .vs/
 .vscode/
