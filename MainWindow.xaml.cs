@@ -170,6 +170,12 @@ public partial class MainWindow
         _gameListController.SetSearchFilter(TxtGameSearch.Text);
     }
 
+    private void CmbGameTypeFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbGameTypeFilter.SelectedItem is ComboBoxItem item && item.Content is string type)
+            _gameListController.SetTypeFilter(type);
+    }
+
     private void SearchResult_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (sender is DataGridRow row && row.DataContext is Game game)
@@ -242,8 +248,10 @@ public partial class MainWindow
 
         if (profileName != null)
         {
-            // Clear game search when switching profiles
+            // Clear game search and type filter when switching profiles
             TxtGameSearch.Text = string.Empty;
+            if (CmbGameTypeFilter.SelectedIndex != 0)
+                CmbGameTypeFilter.SelectedIndex = 0;
 
             CancelPendingProfileLoad();
             _profileController.SelectProfile(profileName);

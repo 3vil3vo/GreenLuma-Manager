@@ -17,13 +17,16 @@ public class GameListController
     private readonly NotificationManager _notificationManager;
     private ICollectionView? _gamesView;
     private string? _searchFilter;
+    private string? _typeFilter;
 
     public ObservableCollection<Game> Games { get; }
     public string? EditingOriginalName { get; set; }
 
     public Game? CurrentSelection { get; set; }
 
-    public bool IsFilterActive => !string.IsNullOrWhiteSpace(_searchFilter);
+    public bool IsFilterActive => !string.IsNullOrWhiteSpace(_searchFilter) || IsTypeFilterActive;
+    public bool IsTypeFilterActive => !string.IsNullOrWhiteSpace(_typeFilter) &&
+        !string.Equals(_typeFilter, "All", StringComparison.OrdinalIgnoreCase);
 
     public GameListController(
         ItemsControl lstGames,
@@ -45,21 +48,51 @@ public class GameListController
     public void SetSearchFilter(string? searchText)
     {
         _searchFilter = searchText;
+        ApplyFilters();
+    }
 
-        if (string.IsNullOrWhiteSpace(searchText))
+    public void SetTypeFilter(string? type)
+    {
+        _typeFilter = type;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var hasSearch = !string.IsNullOrWhiteSpace(_searchFilter);
+        var hasType = IsTypeFilterActive;
+
+        if (!hasSearch && !hasType)
         {
             _gamesView!.Filter = null;
             _notificationManager.UpdateGameCount(Games.Count);
         }
         else
         {
-            var rawFilter = searchText.Trim();
-            var filter = NormalizeForSearch(rawFilter);
+            var rawFilter = _searchFilter?.Trim();
+            var normalizedFilter = !string.IsNullOrWhiteSpace(rawFilter)
+                ? NormalizeForSearch(rawFilter)
+                : null;
+
+            var typeFilterValue = _typeFilter;
+
             _gamesView!.Filter = obj =>
             {
                 if (obj is not Game game) return false;
-                var normalizedName = NormalizeForSearch(game.Name);
-                return normalizedName.Contains(filter, StringComparison.OrdinalIgnoreCase);
+
+                // Apply name search filter
+                if (normalizedFilter != null)
+                {
+                    var normalizedName = NormalizeForSearch(game.Name);
+                    if (!normalizedName.Contains(normalizedFilter, StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+
+                // Apply type filter
+                if (hasType && !string.Equals(game.Type, typeFilterValue, StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                return true;
             };
 
             var filteredCount = 0;

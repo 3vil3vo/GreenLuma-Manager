@@ -37,6 +37,218 @@
 
             <utilities:IconUrlConverter x:Key="IconUrlConverter" />
 
+            <Style x:Key="FilterCombo" TargetType="ComboBox">
+                <Setter Property="Background" Value="{StaticResource DarkBg}" />
+                <Setter Property="Foreground" Value="{StaticResource Text}" />
+                <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Height" Value="26" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <ToggleButton
+                                    x:Name="ToggleButton"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    ClickMode="Press"
+                                    Focusable="False"
+                                    IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border
+                                                x:Name="BorderElement"
+                                                Background="{TemplateBinding Background}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="8">
+                                                <Border.BorderBrush>
+                                                    <SolidColorBrush x:Name="BorderBrush" Color="#FF2A2A2A" />
+                                                </Border.BorderBrush>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition />
+                                                        <ColumnDefinition Width="24" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Path
+                                                        x:Name="Arrow"
+                                                        Grid.Column="1"
+                                                        Width="10"
+                                                        Height="10"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Data="M7 10l5 5 5-5z"
+                                                        RenderTransformOrigin="0.5,0.5"
+                                                        Stretch="Uniform">
+                                                        <Path.Fill>
+                                                            <SolidColorBrush x:Name="ArrowBrush" Color="#FFAAAAAA" />
+                                                        </Path.Fill>
+                                                        <Path.RenderTransform>
+                                                            <RotateTransform Angle="0" />
+                                                        </Path.RenderTransform>
+                                                    </Path>
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Trigger.EnterActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation
+                                                                    Storyboard.TargetName="Arrow"
+                                                                    Storyboard.TargetProperty="(Path.RenderTransform).(RotateTransform.Angle)"
+                                                                    To="180"
+                                                                    Duration="0:0:0.25">
+                                                                    <DoubleAnimation.EasingFunction>
+                                                                        <CubicEase EasingMode="EaseOut" />
+                                                                    </DoubleAnimation.EasingFunction>
+                                                                </DoubleAnimation>
+                                                                <ColorAnimation
+                                                                    Storyboard.TargetName="BorderBrush"
+                                                                    Storyboard.TargetProperty="Color"
+                                                                    To="#FFFFFFFF"
+                                                                    Duration="0:0:0.2" />
+                                                                <ColorAnimation
+                                                                    Storyboard.TargetName="ArrowBrush"
+                                                                    Storyboard.TargetProperty="Color"
+                                                                    To="#FFFFFFFF"
+                                                                    Duration="0:0:0.2" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.EnterActions>
+                                                    <Trigger.ExitActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation
+                                                                    Storyboard.TargetName="Arrow"
+                                                                    Storyboard.TargetProperty="(Path.RenderTransform).(RotateTransform.Angle)"
+                                                                    To="0"
+                                                                    Duration="0:0:0.25">
+                                                                    <DoubleAnimation.EasingFunction>
+                                                                        <CubicEase EasingMode="EaseOut" />
+                                                                    </DoubleAnimation.EasingFunction>
+                                                                </DoubleAnimation>
+                                                                <ColorAnimation
+                                                                    Storyboard.TargetName="BorderBrush"
+                                                                    Storyboard.TargetProperty="Color"
+                                                                    To="#FF2A2A2A"
+                                                                    Duration="0:0:0.2" />
+                                                                <ColorAnimation
+                                                                    Storyboard.TargetName="ArrowBrush"
+                                                                    Storyboard.TargetProperty="Color"
+                                                                    To="#FFAAAAAA"
+                                                                    Duration="0:0:0.2" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.ExitActions>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Trigger.EnterActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <ColorAnimation
+                                                                    Storyboard.TargetName="BorderBrush"
+                                                                    Storyboard.TargetProperty="Color"
+                                                                    To="#FFAAAAAA"
+                                                                    Duration="0:0:0.15" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.EnterActions>
+                                                    <Trigger.ExitActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <ColorAnimation
+                                                                    Storyboard.TargetName="BorderBrush"
+                                                                    Storyboard.TargetProperty="Color"
+                                                                    To="#FF2A2A2A"
+                                                                    Duration="0:0:0.15" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.ExitActions>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                                <ContentPresenter
+                                    x:Name="ContentSite"
+                                    Margin="12,0,30,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Content="{TemplateBinding SelectionBoxItem}"
+                                    ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                    ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                    IsHitTestVisible="False" />
+                                <Popup
+                                    x:Name="Popup"
+                                    AllowsTransparency="True"
+                                    Focusable="False"
+                                    IsOpen="{TemplateBinding IsDropDownOpen}"
+                                    Placement="Bottom"
+                                    PopupAnimation="None">
+                                    <Border
+                                        x:Name="DropDownBorder"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        Margin="0,4,0,0"
+                                        Padding="4"
+                                        Background="{StaticResource SurfaceBg}"
+                                        BorderBrush="{StaticResource Border}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        RenderTransformOrigin="0.5,0">
+                                        <Border.Effect>
+                                            <DropShadowEffect
+                                                BlurRadius="16"
+                                                Direction="270"
+                                                Opacity="0.4"
+                                                ShadowDepth="8"
+                                                Color="Black" />
+                                        </Border.Effect>
+                                        <Border.RenderTransform>
+                                            <ScaleTransform ScaleX="1" ScaleY="1" />
+                                        </Border.RenderTransform>
+                                        <ScrollViewer
+                                            MaxHeight="200"
+                                            HorizontalScrollBarVisibility="Disabled"
+                                            VerticalScrollBarVisibility="Auto">
+                                            <ScrollViewer.Resources>
+                                                <ResourceDictionary>
+                                                    <ResourceDictionary.MergedDictionaries>
+                                                        <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
+                                                    </ResourceDictionary.MergedDictionaries>
+                                                </ResourceDictionary>
+                                            </ScrollViewer.Resources>
+                                            <StackPanel IsItemsHost="True" />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsDropDownOpen" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="DropDownBorder"
+                                                    Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
+                                                    From="0.9"
+                                                    To="1"
+                                                    Duration="0:0:0.2">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style TargetType="ToolTip">
                 <Setter Property="Background" Value="{StaticResource SurfaceBg}" />
                 <Setter Property="Foreground" Value="{StaticResource Text}" />
@@ -1579,6 +1791,7 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <Path
                                     Grid.Column="0"
@@ -1611,6 +1824,47 @@
                                         Text="Search games..."
                                         Padding="1,0,10,0" />
                                 </Grid>
+
+                                <ComboBox
+                                    Grid.Column="2"
+                                    x:Name="CmbGameTypeFilter"
+                                    Width="96"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource FilterCombo}"
+                                    SelectionChanged="CmbGameTypeFilter_SelectionChanged">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                            <Setter Property="BorderThickness" Value="0" />
+                                            <Setter Property="Padding" Value="8,6" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ComboBoxItem">
+                                                        <Border
+                                                            Padding="{TemplateBinding Padding}"
+                                                            Background="{TemplateBinding Background}"
+                                                            CornerRadius="4">
+                                                            <ContentPresenter />
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#FF2A2A2A" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter Property="Background" Value="#FF333333" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                    <ComboBoxItem IsSelected="True">All</ComboBoxItem>
+                                    <ComboBoxItem>Game</ComboBoxItem>
+                                    <ComboBoxItem>DLC</ComboBoxItem>
+                                </ComboBox>
                             </Grid>
                         </Border>
 
