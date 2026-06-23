@@ -23,5 +23,15 @@ public class Config
 
     [DataMember] public bool PrefetchAppList { get; set; }
 
+    [DataMember] public bool StartSteamMinimized { get; set; }
+
     [DataMember] public bool FirstRun { get; set; } = true;
+
+    [DataMember] public string SteamApiKey { get; set; } = "1DD0450A99F573693CD031EBB160907D";
+
+    [DataMember] public bool ShowHiddenDlcs { get; set; }
+
+    [DataMember] public double WindowWidth { get; set; }
+
+    [DataMember] public double WindowHeight { get; set; }
 }
