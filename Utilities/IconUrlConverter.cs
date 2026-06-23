@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
+using GreenLuma_Manager.Services;
 
 namespace GreenLuma_Manager.Utilities;
 
@@ -20,7 +21,10 @@ public class IconUrlConverter : IValueConverter
                 bmp.UriSource = new Uri(iconUrl, UriKind.Absolute);
                 bmp.CacheOption = BitmapCacheOption.OnDemand;
                 bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                bmp.DecodePixelWidth = 64;
                 bmp.EndInit();
+                bmp.DownloadFailed += (_, args) =>
+                    LogService.LogError("IconUrlConverter.DownloadFailed", args.ErrorException);
                 return bmp;
             }
 
@@ -38,8 +42,9 @@ public class IconUrlConverter : IValueConverter
 
             return null;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("IconUrlConverter.Convert", ex);
             return null;
         }
     }
