@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Settings"
     Width="950"
-    Height="680"
+    Height="780"
     MinWidth="850"
     MinHeight="600"
     Background="#FF1A1A1A"
@@ -487,277 +487,435 @@
 
             <Border Grid.Row="0" Background="Transparent" />
 
-            <Grid Grid.Row="1" Margin="40,0,40,40">
+            <ScrollViewer
+                Grid.Row="1"
+                Margin="40,0,40,40"
+                Focusable="False"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <ScrollViewer.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.MergedDictionaries>
+                            <ResourceDictionary
+                                Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
+                        </ResourceDictionary.MergedDictionaries>
+                    </ResourceDictionary>
+                </ScrollViewer.Resources>
+                <Grid>
 
-                <Grid
-                    x:Name="ViewGeneral"
-                    RenderTransformOrigin="0.5,0.5"
-                    Style="{StaticResource FadeInPanel}"
-                    Visibility="Visible">
-                    <Grid.RenderTransform>
-                        <TranslateTransform />
-                    </Grid.RenderTransform>
+                    <Grid
+                        x:Name="ViewGeneral"
+                        RenderTransformOrigin="0.5,0.5"
+                        Style="{StaticResource FadeInPanel}"
+                        Visibility="Visible">
+                        <Grid.RenderTransform>
+                            <TranslateTransform />
+                        </Grid.RenderTransform>
 
-                    <StackPanel>
-                        <TextBlock
-                            Margin="0,0,0,4"
-                            FontSize="24"
-                            FontWeight="SemiBold"
-                            Foreground="{StaticResource TextPrimary}"
-                            Text="General" />
-                        <TextBlock
-                            Margin="0,0,0,24"
-                            FontSize="14"
-                            Foreground="{StaticResource TextSecondary}"
-                            Text="Configure your installation paths." />
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimary}"
+                                Text="General" />
+                            <TextBlock
+                                Margin="0,0,0,24"
+                                FontSize="14"
+                                Foreground="{StaticResource TextSecondary}"
+                                Text="Configure your installation paths." />
 
-                        <Border
-                            Padding="24"
-                            Background="{StaticResource SurfaceBg}"
-                            BorderBrush="{StaticResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,20">
+                            <Border
+                                Padding="24"
+                                Background="{StaticResource SurfaceBg}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,20">
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            FontWeight="Bold"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="INSTALLATION PATHS" />
+                                        <Button
+                                            HorizontalAlignment="Right"
+                                            Click="AutoDetect_Click"
+                                            Content="Auto-Detect"
+                                            FontSize="11"
+                                            Style="{StaticResource ModernBtn}" />
+                                    </Grid>
+
+                                    <StackPanel Margin="0,0,0,20">
+                                        <TextBlock
+                                            Margin="0,0,0,4"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            Text="Steam Directory" />
+                                        <TextBlock Style="{StaticResource DescriptionTxt}"
+                                                   Text="The main installation folder containing Steam.exe." />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="12" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="TxtSteamPath" Style="{StaticResource ChillTextBox}" />
+                                            <Button
+                                                Grid.Column="2"
+                                                Width="80"
+                                                Click="BrowseSteam_Click"
+                                                Content="Browse"
+                                                Style="{StaticResource ModernBtn}" />
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <TextBlock
+                                            Margin="0,0,0,4"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            Text="GreenLuma Directory" />
+                                        <TextBlock Style="{StaticResource DescriptionTxt}"
+                                                   Text="The folder where DLLInjector.exe and GreenLuma files are located." />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="12" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="TxtGreenLumaPath" Style="{StaticResource ChillTextBox}" />
+                                            <Button
+                                                Grid.Column="2"
+                                                Width="80"
+                                                Click="BrowseGreenLuma_Click"
+                                                Content="Browse"
+                                                Style="{StaticResource ModernBtn}" />
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border
+                                Margin="0,20,0,0"
+                                Padding="24"
+                                Background="{StaticResource SurfaceBg}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
                                     <TextBlock
-                                        VerticalAlignment="Center"
+                                        Margin="0,0,0,20"
                                         FontSize="12"
                                         FontWeight="Bold"
                                         Foreground="{StaticResource TextTertiary}"
-                                        Text="INSTALLATION PATHS" />
+                                        Text="API CONFIGURATION" />
+                                    <StackPanel>
+                                        <TextBlock
+                                            Margin="0,0,0,4"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            Text="Steam Web API Key" />
+                                        <TextBlock Style="{StaticResource DescriptionTxt}">
+                                            <Run Text="Required for extended search. Get one free at " />
+                                            <Hyperlink
+                                                Foreground="{StaticResource TextSecondary}"
+                                                NavigateUri="https://steamcommunity.com/dev/apikey"
+                                                RequestNavigate="Hyperlink_RequestNavigate"
+                                                TextDecorations="Underline">
+                                                steamcommunity.com/dev/apikey
+                                            </Hyperlink>
+                                        </TextBlock>
+                                        <TextBox x:Name="TxtSteamApiKey" Style="{StaticResource ChillTextBox}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid
+                        x:Name="ViewSystem"
+                        RenderTransformOrigin="0.5,0.5"
+                        Style="{StaticResource FadeInPanel}"
+                        Visibility="Collapsed">
+                        <Grid.RenderTransform>
+                            <TranslateTransform />
+                        </Grid.RenderTransform>
+
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimary}"
+                                Text="System" />
+                            <TextBlock
+                                Margin="0,0,0,24"
+                                FontSize="14"
+                                Foreground="{StaticResource TextSecondary}"
+                                Text="Manage application behavior and updates." />
+
+                            <Border
+                                Margin="0,0,0,20"
+                                Padding="24"
+                                Background="{StaticResource SurfaceBg}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock
+                                        Margin="0,0,0,20"
+                                        FontSize="12"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextTertiary}"
+                                        Text="STARTUP" />
+                                    <StackPanel Margin="0,0,0,24">
+                                        <CheckBox
+                                            x:Name="ChkReplaceSteamAutostart"
+                                            Content="Replace Steam on Windows Startup"
+                                            Style="{StaticResource ChillSwitch}" />
+                                        <TextBlock
+                                            Margin="0,4,60,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="Launch GreenLuma Manager automatically when Windows starts, replacing the default Steam startup."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel Margin="0,0,0,24">
+                                        <CheckBox
+                                            x:Name="ChkPrefetchAppList"
+                                            Content="Prefetch Steam App List"
+                                            Style="{StaticResource ChillSwitch}" />
+                                        <TextBlock
+                                            Margin="0,4,60,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="Speed up the App Search by prefetching all Steam Apps when GreenLuma Manager starts."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <CheckBox
+                                            x:Name="ChkStartSteamMinimized"
+                                            Content="Start Steam Minimized"
+                                            Style="{StaticResource ChillSwitch}" />
+                                        <TextBlock
+                                            Margin="0,4,60,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="Launch Steam minimized to the system tray instead of showing the main window."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border
+                                Margin="0,0,0,20"
+                                Padding="24"
+                                Background="{StaticResource SurfaceBg}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock
+                                        Margin="0,0,0,20"
+                                        FontSize="12"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextTertiary}"
+                                        Text="SEARCH" />
+                                    <StackPanel>
+                                        <CheckBox
+                                            x:Name="ChkShowHiddenDlcs"
+                                            Content="Show Hidden DLCs"
+                                            Style="{StaticResource ChillSwitch}" />
+                                        <TextBlock
+                                            Margin="0,4,60,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="Include DLCs that are normally hidden from the Steam store in search results."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border
+                                Padding="24"
+                                Background="{StaticResource SurfaceBg}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock
+                                        Margin="0,0,0,20"
+                                        FontSize="12"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextTertiary}"
+                                        Text="UPDATES" />
+                                    <StackPanel Margin="0,0,0,24">
+                                        <CheckBox
+                                            x:Name="ChkDisableUpdateCheck"
+                                            Checked="DisableUpdateCheck_Changed"
+                                            Content="Disable Update Checking"
+                                            Style="{StaticResource ChillSwitch}"
+                                            Unchecked="DisableUpdateCheck_Changed" />
+                                        <TextBlock
+                                            Margin="0,4,60,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="Prevent the application from checking for new versions on startup."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <CheckBox
+                                            x:Name="ChkAutoUpdate"
+                                            Content="Auto-Install Updates"
+                                            Style="{StaticResource ChillSwitch}" />
+                                        <TextBlock
+                                            Margin="0,4,60,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="Download and install updates automatically instead of being redirected to the GitHub page."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid
+                        x:Name="ViewAdvanced"
+                        RenderTransformOrigin="0.5,0.5"
+                        Style="{StaticResource FadeInPanel}"
+                        Visibility="Collapsed">
+                        <Grid.RenderTransform>
+                            <TranslateTransform />
+                        </Grid.RenderTransform>
+
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimary}"
+                                Text="Advanced" />
+                            <TextBlock
+                                Margin="0,0,0,24"
+                                FontSize="14"
+                                Foreground="{StaticResource TextSecondary}"
+                                Text="Dangerous actions and data management." />
+
+                            <Border
+                                Margin="0,0,0,20"
+                                Padding="24"
+                                Background="{StaticResource SurfaceBg}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="15"
+                                            FontWeight="Bold"
+                                            Foreground="{StaticResource TextPrimary}"
+                                            Text="App Data Folder" />
+                                        <TextBlock
+                                            Margin="0,4,0,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            Text="Open the folder where GreenLuma Manager stores its configuration and profiles."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
                                     <Button
-                                        HorizontalAlignment="Right"
-                                        Click="AutoDetect_Click"
-                                        Content="Auto-Detect"
-                                        FontSize="11"
+                                        Grid.Column="1"
+                                        Click="OpenAppData_Click"
+                                        Content="Open"
                                         Style="{StaticResource ModernBtn}" />
                                 </Grid>
+                            </Border>
 
-                                <StackPanel Margin="0,0,0,20">
-                                    <TextBlock
-                                        Margin="0,0,0,4"
-                                        FontSize="13"
-                                        Foreground="{StaticResource TextSecondary}"
-                                        Text="Steam Directory" />
-                                    <TextBlock Style="{StaticResource DescriptionTxt}"
-                                               Text="The main installation folder containing Steam.exe." />
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="12" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBox x:Name="TxtSteamPath" Style="{StaticResource ChillTextBox}" />
-                                        <Button
-                                            Grid.Column="2"
-                                            Width="80"
-                                            Click="BrowseSteam_Click"
-                                            Content="Browse"
-                                            Style="{StaticResource ModernBtn}" />
-                                    </Grid>
-                                </StackPanel>
+                            <Border
+                                Margin="0,0,0,20"
+                                Padding="24"
+                                Background="{StaticResource SurfaceBg}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="15"
+                                            FontWeight="Bold"
+                                            Foreground="{StaticResource TextPrimary}"
+                                            Text="Restart Steam" />
+                                        <TextBlock
+                                            Margin="0,4,0,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            Text="Kill all Steam processes and relaunch Steam."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <Button
+                                        Grid.Column="1"
+                                        Click="RestartSteam_Click"
+                                        Content="Restart"
+                                        Style="{StaticResource ModernBtn}" />
+                                </Grid>
+                            </Border>
 
-                                <StackPanel>
-                                    <TextBlock
-                                        Margin="0,0,0,4"
-                                        FontSize="13"
-                                        Foreground="{StaticResource TextSecondary}"
-                                        Text="GreenLuma Directory" />
-                                    <TextBlock Style="{StaticResource DescriptionTxt}"
-                                               Text="The folder where DLLInjector.exe and GreenLuma files are located." />
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="12" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBox x:Name="TxtGreenLumaPath" Style="{StaticResource ChillTextBox}" />
-                                        <Button
-                                            Grid.Column="2"
-                                            Width="80"
-                                            Click="BrowseGreenLuma_Click"
-                                            Content="Browse"
-                                            Style="{StaticResource ModernBtn}" />
-                                    </Grid>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
+                            <Border
+                                Padding="24"
+                                Background="#0DFF4444"
+                                BorderBrush="{StaticResource DangerBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <Border.Effect>
+                                    <DropShadowEffect
+                                        BlurRadius="20"
+                                        Opacity="0.15"
+                                        ShadowDepth="0"
+                                        Color="#FFFF4444" />
+                                </Border.Effect>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="15"
+                                            FontWeight="Bold"
+                                            Foreground="{StaticResource DangerBrush}"
+                                            Text="Danger Zone" />
+                                        <TextBlock
+                                            Margin="0,4,0,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            Text="Irreversibly wipe all application data, profiles, settings, and cache."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <Button
+                                        Grid.Column="1"
+                                        Click="WipeData_Click"
+                                        Content="Wipe Data"
+                                        Style="{StaticResource DangerBtn}" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
                 </Grid>
-
-                <Grid
-                    x:Name="ViewSystem"
-                    RenderTransformOrigin="0.5,0.5"
-                    Style="{StaticResource FadeInPanel}"
-                    Visibility="Collapsed">
-                    <Grid.RenderTransform>
-                        <TranslateTransform />
-                    </Grid.RenderTransform>
-
-                    <StackPanel>
-                        <TextBlock
-                            Margin="0,0,0,4"
-                            FontSize="24"
-                            FontWeight="SemiBold"
-                            Foreground="{StaticResource TextPrimary}"
-                            Text="System" />
-                        <TextBlock
-                            Margin="0,0,0,24"
-                            FontSize="14"
-                            Foreground="{StaticResource TextSecondary}"
-                            Text="Manage application behavior and updates." />
-
-                        <Border
-                            Margin="0,0,0,20"
-                            Padding="24"
-                            Background="{StaticResource SurfaceBg}"
-                            BorderBrush="{StaticResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                            <StackPanel>
-                                <TextBlock
-                                    Margin="0,0,0,20"
-                                    FontSize="12"
-                                    FontWeight="Bold"
-                                    Foreground="{StaticResource TextTertiary}"
-                                    Text="STARTUP" />
-                                <StackPanel Margin="0,0,0,24">
-                                    <CheckBox
-                                        x:Name="ChkReplaceSteamAutostart"
-                                        Content="Replace Steam on Windows Startup"
-                                        Style="{StaticResource ChillSwitch}" />
-                                    <TextBlock
-                                        Margin="0,4,60,0"
-                                        FontSize="13"
-                                        Foreground="{StaticResource TextTertiary}"
-                                        Text="Launch GreenLuma Manager automatically when Windows starts, replacing the default Steam startup."
-                                        TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <StackPanel>
-                                    <CheckBox
-                                        x:Name="ChkPrefetchAppList"
-                                        Content="Prefetch Steam App List"
-                                        Style="{StaticResource ChillSwitch}" />
-                                    <TextBlock
-                                        Margin="0,4,60,0"
-                                        FontSize="13"
-                                        Foreground="{StaticResource TextTertiary}"
-                                        Text="Speed up the App Search by prefetching all Steam Apps when GreenLuma Manager starts."
-                                        TextWrapping="Wrap" />
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <Border
-                            Padding="24"
-                            Background="{StaticResource SurfaceBg}"
-                            BorderBrush="{StaticResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                            <StackPanel>
-                                <TextBlock
-                                    Margin="0,0,0,20"
-                                    FontSize="12"
-                                    FontWeight="Bold"
-                                    Foreground="{StaticResource TextTertiary}"
-                                    Text="UPDATES" />
-                                <StackPanel Margin="0,0,0,24">
-                                    <CheckBox
-                                        x:Name="ChkDisableUpdateCheck"
-                                        Checked="DisableUpdateCheck_Changed"
-                                        Content="Disable Update Checking"
-                                        Style="{StaticResource ChillSwitch}"
-                                        Unchecked="DisableUpdateCheck_Changed" />
-                                    <TextBlock
-                                        Margin="0,4,60,0"
-                                        FontSize="13"
-                                        Foreground="{StaticResource TextTertiary}"
-                                        Text="Prevent the application from checking for new versions on startup."
-                                        TextWrapping="Wrap" />
-                                </StackPanel>
-
-                                <StackPanel>
-                                    <CheckBox
-                                        x:Name="ChkAutoUpdate"
-                                        Content="Auto-Install Updates"
-                                        Style="{StaticResource ChillSwitch}" />
-                                    <TextBlock
-                                        Margin="0,4,60,0"
-                                        FontSize="13"
-                                        Foreground="{StaticResource TextTertiary}"
-                                        Text="Download and install updates automatically instead of being redirected to the GitHub page."
-                                        TextWrapping="Wrap" />
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-
-                <Grid
-                    x:Name="ViewAdvanced"
-                    RenderTransformOrigin="0.5,0.5"
-                    Style="{StaticResource FadeInPanel}"
-                    Visibility="Collapsed">
-                    <Grid.RenderTransform>
-                        <TranslateTransform />
-                    </Grid.RenderTransform>
-
-                    <StackPanel>
-                        <TextBlock
-                            Margin="0,0,0,4"
-                            FontSize="24"
-                            FontWeight="SemiBold"
-                            Foreground="{StaticResource TextPrimary}"
-                            Text="Advanced" />
-                        <TextBlock
-                            Margin="0,0,0,24"
-                            FontSize="14"
-                            Foreground="{StaticResource TextSecondary}"
-                            Text="Dangerous actions and data management." />
-
-                        <Border
-                            Padding="24"
-                            Background="#0DFF4444"
-                            BorderBrush="{StaticResource DangerBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                            <Border.Effect>
-                                <DropShadowEffect
-                                    BlurRadius="20"
-                                    Opacity="0.15"
-                                    ShadowDepth="0"
-                                    Color="#FFFF4444" />
-                            </Border.Effect>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock
-                                        FontSize="15"
-                                        FontWeight="Bold"
-                                        Foreground="{StaticResource DangerBrush}"
-                                        Text="Danger Zone" />
-                                    <TextBlock
-                                        Margin="0,4,0,0"
-                                        FontSize="13"
-                                        Foreground="{StaticResource TextSecondary}"
-                                        Text="Irreversibly wipe all application data, profiles, settings, and cache."
-                                        TextWrapping="Wrap" />
-                                </StackPanel>
-                                <Button
-                                    Grid.Column="1"
-                                    Click="WipeData_Click"
-                                    Content="Wipe Data"
-                                    Style="{StaticResource DangerBtn}" />
-                            </Grid>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-
-            </Grid>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Window>

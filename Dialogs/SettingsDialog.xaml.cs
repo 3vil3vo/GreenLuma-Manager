@@ -1,6 +1,8 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Navigation;
 using GreenLuma_Manager.Models;
 using GreenLuma_Manager.Services;
 using GreenLuma_Manager.Utilities;
@@ -27,10 +29,13 @@ public partial class SettingsDialog
     {
         TxtSteamPath.Text = _config.SteamPath;
         TxtGreenLumaPath.Text = _config.GreenLumaPath;
+        TxtSteamApiKey.Text = _config.SteamApiKey;
         ChkReplaceSteamAutostart.IsChecked = _config.ReplaceSteamAutostart;
         ChkPrefetchAppList.IsChecked = _config.PrefetchAppList;
+        ChkStartSteamMinimized.IsChecked = _config.StartSteamMinimized;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
+        ChkShowHiddenDlcs.IsChecked = _config.ShowHiddenDlcs;
     }
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -126,6 +131,72 @@ public partial class SettingsDialog
         CustomMessageBox.Show("All data has been wiped. The application will now close.", "Complete",
             icon: MessageBoxImage.Asterisk);
         Application.Current.Shutdown();
+    }
+
+    private void OpenAppData_Click(object sender, RoutedEventArgs e)
+    {
+        var appDataDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "GLM_Manager");
+
+        if (Directory.Exists(appDataDir))
+            Process.Start(new ProcessStartInfo { FileName = appDataDir, UseShellExecute = true });
+        else
+            CustomMessageBox.Show("App data folder does not exist yet.", "Info",
+                icon: MessageBoxImage.Information);
+    }
+
+    private async void RestartSteam_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var steamExePath = Path.Combine(_config.SteamPath, "Steam.exe");
+            if (!File.Exists(steamExePath))
+            {
+                CustomMessageBox.Show("Steam executable not found at the configured path.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string[] processNames = ["steam", "steamservice", "steamwebhelper"];
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = steamExePath,
+                Arguments = "-shutdown",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            await Task.Delay(3000);
+
+            foreach (var name in processNames)
+            foreach (var proc in Process.GetProcessesByName(name))
+                try
+                {
+                    proc.Kill();
+                    proc.WaitForExit(3000);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = steamExePath,
+                UseShellExecute = true
+            });
+
+            CustomMessageBox.Show("Steam has been restarted.", "Done",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SettingsDialog.RestartSteam", ex);
+            CustomMessageBox.Show("Failed to restart Steam: " + ex.Message, "Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
 
@@ -234,10 +305,13 @@ public partial class SettingsDialog
 
         _config.SteamPath = steamPath;
         _config.GreenLumaPath = greenLumaPath;
+        _config.SteamApiKey = TxtSteamApiKey.Text.Trim();
         _config.ReplaceSteamAutostart = ChkReplaceSteamAutostart.IsChecked.GetValueOrDefault();
         _config.PrefetchAppList = ChkPrefetchAppList.IsChecked.GetValueOrDefault();
+        _config.StartSteamMinimized = ChkStartSteamMinimized.IsChecked.GetValueOrDefault();
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
+        _config.ShowHiddenDlcs = ChkShowHiddenDlcs.IsChecked.GetValueOrDefault();
 
         ConfigService.Save(_config);
         AutostartManager.ManageAutostart(_config.ReplaceSteamAutostart, _config);
@@ -261,11 +335,16 @@ public partial class SettingsDialog
 
             return false;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("SettingsDialog.IsReadOnly", ex);
             return true;
         }
     }
 
-
+    private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
+    }
 }
