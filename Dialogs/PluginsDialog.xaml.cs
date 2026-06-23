@@ -37,6 +37,14 @@ public partial class PluginsDialog
 
     private void ImportButton_Click(object sender, RoutedEventArgs e)
     {
+        var warning = CustomMessageBox.Show(
+            "Plugins are third-party code that run with full application permissions.\n\nOnly install plugins from sources you trust.\n\nDo you want to continue?",
+            "Security Warning",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (warning != MessageBoxResult.Yes) return;
+
         var dialog = new OpenFileDialog
         {
             Title = "Select Plugin DLL",
