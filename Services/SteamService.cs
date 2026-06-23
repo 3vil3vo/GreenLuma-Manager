@@ -1,4 +1,4 @@
-﻿using SteamKit2;
+using SteamKit2;
 
 namespace GreenLuma_Manager.Services;
 
@@ -51,9 +51,9 @@ public sealed class SteamService : IDisposable
         {
             _callbackLoop.Wait(1000);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            LogService.LogError("SteamService.Dispose", ex);
         }
 
         _cts.Dispose();
@@ -75,7 +75,23 @@ public sealed class SteamService : IDisposable
             {
                 await EnsureReadyAsync().ConfigureAwait(false);
 
-                var requests = appIds.Select(id => new SteamApps.PICSRequest { ID = id, AccessToken = 0 }).ToList();
+                var tokens = new Dictionary<uint, ulong>();
+                try
+                {
+                    var tokenResult = await _steamApps.PICSGetAccessTokens(appIds, []).ToTask().ConfigureAwait(false);
+                    foreach (var (appId, token) in tokenResult.AppTokens)
+                        tokens[appId] = token;
+                }
+                catch
+                {
+                    // Fall through with no tokens
+                }
+
+                var requests = appIds.Select(id => new SteamApps.PICSRequest
+                {
+                    ID = id,
+                    AccessToken = tokens.TryGetValue(id, out var t) ? t : 0
+                }).ToList();
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
                 var job = _steamApps.PICSGetProductInfo(requests, []);
@@ -123,6 +139,26 @@ public sealed class SteamService : IDisposable
                     if (string.IsNullOrEmpty(headerImage))
                         headerImage = headerNode["english"].Value;
 
+                    List<string>? dlcList = null;
+                    var dlcListValue = kv["extended"]["listofdlc"].Value;
+                    if (!string.IsNullOrEmpty(dlcListValue))
+                        dlcList = dlcListValue.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+
+                    var depotsNode = kv["depots"];
+                    if (depotsNode != KeyValue.Invalid)
+                        foreach (var depot in depotsNode.Children)
+                        {
+                            if (!uint.TryParse(depot.Name, out _)) continue;
+                            var dlcAppId = depot["dlcappid"].Value;
+                            if (!string.IsNullOrEmpty(dlcAppId))
+                            {
+                                dlcList ??= [];
+                                if (!dlcList.Contains(dlcAppId))
+                                    dlcList.Add(dlcAppId);
+                            }
+                        }
+
                     results[appId] = new GameDetails(
                         appId.ToString(),
                         type,
@@ -131,14 +167,16 @@ public sealed class SteamService : IDisposable
                         heroHash,
                         mainHash,
                         parentId,
-                        headerImage
+                        headerImage,
+                        dlcList
                     );
                 }
 
                 if (results.Count > 0) return results;
             }
-            catch
+            catch (Exception ex)
             {
+                LogService.LogError("SteamService.GetAppInfoBatch", ex);
                 if (attempt == maxRetries) break;
                 await Task.Delay(500).ConfigureAwait(false);
             }
@@ -166,8 +204,9 @@ public sealed class SteamService : IDisposable
 
             return null;
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("SteamService.GetAppPackageInfo", ex);
             return null;
         }
     }
@@ -186,7 +225,7 @@ public sealed class SteamService : IDisposable
             AppId = appId.ToString()
         };
 
-        var dlcList = kv["common"]["extended"]["listofdlc"].Value;
+        var dlcList = kv["extended"]["listofdlc"].Value;
         if (!string.IsNullOrEmpty(dlcList))
             info.DlcAppIds = dlcList.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
 
@@ -214,6 +253,168 @@ public sealed class SteamService : IDisposable
         }
 
         return info;
+    }
+
+    public async Task<List<uint>> GetPackageAppIdsAsync(uint packageId)
+    {
+        var appIds = new List<uint>();
+        try
+        {
+            await EnsureReadyAsync().ConfigureAwait(false);
+
+            var request = new SteamApps.PICSRequest { ID = packageId, AccessToken = 0 };
+            var job = _steamApps.PICSGetProductInfo([], [request]);
+
+            var task = job.ToTask();
+            if (await Task.WhenAny(task, Task.Delay(5000)) != task)
+                return appIds;
+
+            var result = await task.ConfigureAwait(false);
+            if (result.Failed || result.Results == null)
+                return appIds;
+
+            foreach (var callback in result.Results)
+            {
+                if (!callback.Packages.TryGetValue(packageId, out var pkgData))
+                    continue;
+
+                var kv = pkgData.KeyValues;
+                var appIdsNode = kv["appids"];
+                foreach (var child in appIdsNode.Children)
+                    if (uint.TryParse(child.Value, out var appId))
+                        appIds.Add(appId);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SteamService.GetPackageAppIds", ex);
+        }
+
+        return appIds;
+    }
+
+    public async Task<List<uint>> GetAppPackageIdsAsync(uint appId)
+    {
+        var packageIds = new List<uint>();
+        try
+        {
+            await EnsureReadyAsync().ConfigureAwait(false);
+
+            var request = new SteamApps.PICSRequest { ID = appId, AccessToken = 0 };
+            var job = _steamApps.PICSGetProductInfo([request], []);
+
+            var task = job.ToTask();
+            if (await Task.WhenAny(task, Task.Delay(5000)) != task)
+                return packageIds;
+
+            var result = await task.ConfigureAwait(false);
+            if (result.Failed || result.Results == null)
+                return packageIds;
+
+            foreach (var callback in result.Results)
+            {
+                if (!callback.Apps.TryGetValue(appId, out var appData))
+                    continue;
+
+                var kv = appData.KeyValues;
+                var depotsNode = kv["depots"];
+                var baseLicensesNode = depotsNode["baselicenses"];
+                foreach (var child in baseLicensesNode.Children)
+                    if (uint.TryParse(child.Value, out var pkgId))
+                        packageIds.Add(pkgId);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SteamService.GetAppPackageIds", ex);
+        }
+
+        return packageIds;
+    }
+
+    public async Task<List<uint>> ScanRangeForDlcsAsync(uint baseAppId, List<uint> knownDlcIds)
+    {
+        var foundDlcIds = new List<uint>();
+        if (knownDlcIds.Count == 0) return foundDlcIds;
+
+        try
+        {
+            await EnsureReadyAsync().ConfigureAwait(false);
+
+            var sorted = knownDlcIds.OrderBy(x => x).ToList();
+            var clusters = new List<(uint Min, uint Max)>();
+            var clusterStart = sorted[0];
+            var clusterEnd = sorted[0];
+
+            for (var i = 1; i < sorted.Count; i++)
+                if (sorted[i] - clusterEnd <= 1000)
+                {
+                    clusterEnd = sorted[i];
+                }
+                else
+                {
+                    clusters.Add((clusterStart, clusterEnd));
+                    clusterStart = sorted[i];
+                    clusterEnd = sorted[i];
+                }
+
+            clusters.Add((clusterStart, clusterEnd));
+
+            var idsToScan = new HashSet<uint>();
+            var knownSet = new HashSet<uint>(knownDlcIds) { baseAppId };
+
+            foreach (var (min, max) in clusters)
+            {
+                var rangeStart = min >= 100 ? min - 100 : 0;
+                var rangeEnd = max + 100;
+                for (var id = rangeStart; id <= rangeEnd; id++)
+                    if (!knownSet.Contains(id))
+                        idsToScan.Add(id);
+            }
+
+            if (idsToScan.Count == 0) return foundDlcIds;
+
+            var baseAppIdStr = baseAppId.ToString();
+            foreach (var batch in idsToScan.Chunk(500))
+                try
+                {
+                    var requests = batch.Select(id => new SteamApps.PICSRequest
+                    {
+                        ID = id, AccessToken = 0
+                    }).ToList();
+
+                    var job = _steamApps.PICSGetProductInfo(requests, []);
+                    var task = job.ToTask();
+                    if (await Task.WhenAny(task, Task.Delay(10000)) != task)
+                        continue;
+
+                    var result = await task.ConfigureAwait(false);
+                    if (result.Failed || result.Results == null) continue;
+
+                    foreach (var callback in result.Results)
+                    foreach (var (appId, appData) in callback.Apps)
+                    {
+                        var kv = appData.KeyValues;
+                        var common = kv["common"];
+                        var type = common["type"].Value;
+                        var parent = common["parent"].Value;
+
+                        if (string.Equals(parent, baseAppIdStr, StringComparison.OrdinalIgnoreCase) &&
+                            !string.IsNullOrEmpty(type))
+                            foundDlcIds.Add(appId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogService.LogError("SteamService.ScanRange.Batch", ex);
+                }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SteamService.ScanRangeForDlcs", ex);
+        }
+
+        return foundDlcIds;
     }
 
     private async Task EnsureReadyAsync()
@@ -246,10 +447,13 @@ public sealed class SteamService : IDisposable
         _isConnected = false;
         _isLoggedOn = false;
 
-        Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(_ =>
+        if (!_isRunning || _cts.Token.IsCancellationRequested) return;
+
+        LogService.LogWarning("SteamService", "Disconnected from Steam, reconnecting in 5 seconds...");
+        Task.Delay(TimeSpan.FromSeconds(5), _cts.Token).ContinueWith(_ =>
         {
             if (_isRunning) _steamClient.Connect();
-        });
+        }, _cts.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
     }
 
     private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -287,5 +491,6 @@ public record GameDetails(
     string? HeroHash = null,
     string? MainHash = null,
     string? ParentAppId = null,
-    string? HeaderImage = null
+    string? HeaderImage = null,
+    List<string>? ListOfDlc = null
 );
