@@ -1334,7 +1334,7 @@
                                     GroupName="ResultFilter"
                                     Style="{StaticResource FilterPill}" />
                                 <RadioButton
-                                    x:Name="FilterSoftware"
+                                    x:Name="FilterOther"
                                     Checked="ResultFilter_Changed"
                                     Content="Software"
                                     GroupName="ResultFilter"

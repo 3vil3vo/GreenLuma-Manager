@@ -528,7 +528,7 @@ public partial class MainWindow
                 return string.Equals(g.Type, "Game", StringComparison.OrdinalIgnoreCase);
             if (FilterDlc.IsChecked == true)
                 return string.Equals(g.Type, "DLC", StringComparison.OrdinalIgnoreCase);
-            if (FilterSoftware.IsChecked == true)
+            if (FilterOther.IsChecked == true)
                 return !string.Equals(g.Type, "Game", StringComparison.OrdinalIgnoreCase)
                        && !string.Equals(g.Type, "DLC", StringComparison.OrdinalIgnoreCase);
 
