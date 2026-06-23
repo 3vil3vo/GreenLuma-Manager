@@ -38,6 +38,7 @@ public class GameListController
     public void ClearGames()
     {
         Games.Clear();
+        _notificationManager.UpdateGameCount(Games.Count);
         UpdateGameListState();
     }
 
