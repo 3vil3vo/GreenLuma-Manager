@@ -22,7 +22,7 @@ namespace GreenLuma_Manager;
 
 public partial class MainWindow
 {
-    public const string Version = "RC2.12";
+    public const string Version = "RC2.13";
     private const string LatestGreenLumaVersion = "1.7.8";
     private const int ToastDurationMs = 6000;
 
