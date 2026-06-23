@@ -179,7 +179,7 @@ public partial class SettingsDialog
                 }
                 catch
                 {
-                    // ignore
+                    // ignored
                 }
 
             Process.Start(new ProcessStartInfo

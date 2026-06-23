@@ -84,7 +84,7 @@ public sealed class SteamService : IDisposable
                 }
                 catch
                 {
-                    // Fall through with no tokens
+                    // ignored
                 }
 
                 var requests = appIds.Select(id => new SteamApps.PICSRequest
