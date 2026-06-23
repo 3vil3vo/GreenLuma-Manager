@@ -145,6 +145,31 @@ public partial class MainWindow
         TxtSearchInput.Focus();
     }
 
+    // ─── Game List Search ───────────────────────────────────────────
+
+    private void TxtGameSearch_GotFocus(object sender, RoutedEventArgs e)
+    {
+        TxtGameSearchPlaceholder.Visibility = Visibility.Collapsed;
+    }
+
+    private void TxtGameSearch_LostFocus(object sender, RoutedEventArgs e)
+    {
+        TxtGameSearchPlaceholder.Visibility = string.IsNullOrEmpty(TxtGameSearch.Text)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private void TxtGameSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        // Update placeholder visibility
+        TxtGameSearchPlaceholder.Visibility = string.IsNullOrEmpty(TxtGameSearch.Text)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        // Apply real-time filter
+        _gameListController.SetSearchFilter(TxtGameSearch.Text);
+    }
+
     private void SearchResult_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (sender is DataGridRow row && row.DataContext is Game game)
@@ -217,6 +242,9 @@ public partial class MainWindow
 
         if (profileName != null)
         {
+            // Clear game search when switching profiles
+            TxtGameSearch.Text = string.Empty;
+
             CancelPendingProfileLoad();
             _profileController.SelectProfile(profileName);
             ScheduleGameDetailLoad();
@@ -289,6 +317,7 @@ public partial class MainWindow
 
         if (result != MessageBoxResult.Yes) return;
 
+        TxtGameSearch.Text = string.Empty;
         _gameListController.ClearGames();
         _profileController.SaveCurrentProfile();
         _notificationManager.ShowToast($"Profile '{_profileController.CurrentProfile.Name}' cleared");

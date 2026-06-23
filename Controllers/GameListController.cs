@@ -1,8 +1,9 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using System.Linq;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using GreenLuma_Manager.Models;
 using GreenLuma_Manager.Services;
 
@@ -14,11 +15,15 @@ public class GameListController
     private readonly TextBlock _txtGameCount;
     private readonly UIElement _pnlEmptyGames;
     private readonly NotificationManager _notificationManager;
+    private ICollectionView? _gamesView;
+    private string? _searchFilter;
 
     public ObservableCollection<Game> Games { get; }
     public string? EditingOriginalName { get; set; }
 
     public Game? CurrentSelection { get; set; }
+
+    public bool IsFilterActive => !string.IsNullOrWhiteSpace(_searchFilter);
 
     public GameListController(
         ItemsControl lstGames,
@@ -32,7 +37,51 @@ public class GameListController
         _notificationManager = notificationManager;
 
         Games = [];
-        _lstGames.ItemsSource = Games;
+        _gamesView = CollectionViewSource.GetDefaultView(Games);
+        _gamesView.Refresh();
+        _lstGames.ItemsSource = _gamesView;
+    }
+
+    public void SetSearchFilter(string? searchText)
+    {
+        _searchFilter = searchText;
+
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            _gamesView!.Filter = null;
+            _notificationManager.UpdateGameCount(Games.Count);
+        }
+        else
+        {
+            var rawFilter = searchText.Trim();
+            var filter = NormalizeForSearch(rawFilter);
+            _gamesView!.Filter = obj =>
+            {
+                if (obj is not Game game) return false;
+                var normalizedName = NormalizeForSearch(game.Name);
+                return normalizedName.Contains(filter, StringComparison.OrdinalIgnoreCase);
+            };
+
+            var filteredCount = 0;
+            foreach (var _ in _gamesView!)
+                filteredCount++;
+            _notificationManager.UpdateGameCount(filteredCount, true);
+        }
+
+        UpdateGameListState();
+    }
+
+    /// <summary>
+    /// Strips characters that commonly cause search mismatches (apostrophes, etc.)
+    /// so that searching "Dragons" matches "Dragon's".
+    /// </summary>
+    private static string NormalizeForSearch(string text)
+    {
+        return text
+            .Replace("'", "")
+            .Replace("’", "")
+            .Replace("ʻ", "")
+            .Replace("ʼ", "");
     }
 
     public void ClearGames()
@@ -67,13 +116,21 @@ public class GameListController
         foreach (var game in games.OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase))
             Games.Add(game);
 
+        // Clear search filter when loading a new set of games
+        _searchFilter = null;
+        if (_gamesView != null)
+            _gamesView.Filter = null;
+
         _notificationManager.UpdateGameCount(Games.Count);
         UpdateGameListState();
     }
 
     public void UpdateGameListState()
     {
-        _pnlEmptyGames.Visibility = Games.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        var hasItems = Games.Count > 0;
+
+        // Show empty panel only if there are no games at all (not just filtered away)
+        _pnlEmptyGames.Visibility = hasItems ? Visibility.Collapsed : Visibility.Visible;
     }
 
     public void ToggleGameCheck(Game game, bool? isChecked)

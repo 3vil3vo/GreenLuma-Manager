@@ -1548,10 +1548,11 @@
                     <Grid Grid.Row="2">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
                             <TextBlock Style="{StaticResource HeaderTxt}" Text="GAMES" />
                             <Border
                                 Padding="12,6"
@@ -1567,9 +1568,55 @@
                             </Border>
                         </Grid>
 
+                        <!-- Search/Filter bar -->
+                        <Border
+                            Grid.Row="1"
+                            Height="36"
+                            Margin="0,0,0,12"
+                            Background="{StaticResource DarkBg}"
+                            CornerRadius="8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Path
+                                    Grid.Column="0"
+                                    Width="16"
+                                    Height="16"
+                                    Margin="12,0,8,0"
+                                    Data="M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5C16,5.91 13.09,3 9.5,3C5.91,3 3,5.91 3,9.5C3,13.09 5.91,16 9.5,16C11.11,16 12.59,15.41 13.73,14.43L14,14.71L14,15.5L19,20.49L20.49,19L15.5,14ZM9.5,14C7.01,14 5,11.99 5,9.5C5,7.01 7.01,5 9.5,5C11.99,5 14,7.01 14,9.5C14,11.99 11.99,14 9.5,14Z"
+                                    Fill="{StaticResource TextTert}"
+                                    Stretch="Uniform"
+                                    VerticalAlignment="Center" />
+                                <Grid Grid.Column="1">
+                                    <TextBox
+                                        x:Name="TxtGameSearch"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Foreground="{StaticResource Text}"
+                                        FontSize="13"
+                                        VerticalContentAlignment="Center"
+                                        CaretBrush="{StaticResource Accent}"
+                                        GotFocus="TxtGameSearch_GotFocus"
+                                        LostFocus="TxtGameSearch_LostFocus"
+                                        TextChanged="TxtGameSearch_TextChanged"
+                                        Padding="0,0,10,0" />
+                                    <TextBlock
+                                        x:Name="TxtGameSearchPlaceholder"
+                                        IsHitTestVisible="False"
+                                        VerticalAlignment="Center"
+                                        FontSize="13"
+                                        Foreground="{StaticResource TextTert}"
+                                        Text="Search games..."
+                                        Padding="1,0,10,0" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+
                         <Border
                             x:Name="MainGameListContainer"
-                            Grid.Row="1"
+                            Grid.Row="2"
                             Background="{StaticResource DarkBg}"
                             BorderBrush="{StaticResource Border}"
                             BorderThickness="1"
