@@ -11,40 +11,40 @@ Thank you for your interest in contributing to GreenLuma Manager!
    ```
 
 2. **Open in Visual Studio**
-   - Open `GreenLuma-Manager.slnx` in Visual Studio 2022 or later
-   - Ensure you have .NET 10.0 SDK installed
+    - Open `GreenLuma-Manager.slnx` in Visual Studio 2022 or later
+    - Ensure you have .NET 10.0 SDK installed
 
 3. **Restore NuGet packages**
-   - Right-click the solution in Solution Explorer
-   - Select "Restore NuGet Packages"
-   - Package: Newtonsoft.Json
+    - Right-click the solution in Solution Explorer
+    - Select "Restore NuGet Packages"
+    - Package: Newtonsoft.Json
 
 4. **Build and run**
-   - Press F5 to build and run in debug mode
-   - Or Build → Build Solution (Ctrl+Shift+B)
+    - Press F5 to build and run in debug mode
+    - Or Build → Build Solution (Ctrl+Shift+B)
 
 ## Project Structure
 
 - `Services/` - Core application services
-  - `ConfigService.cs` - Configuration management and RC3 migration
-  - `ProfileService.cs` - Profile management and RC3 migration
-  - `SearchService.cs` - Steam game search and icon fetching
-  - `GreenLumaService.cs` - AppList generation and GreenLuma launch
-  - `UpdateService.cs` - Auto-update functionality
-  - `IconCacheService.cs` - Icon caching and management
+    - `ConfigService.cs` - Configuration management and RC3 migration
+    - `ProfileService.cs` - Profile management and RC3 migration
+    - `SearchService.cs` - Steam game search and icon fetching
+    - `GreenLumaService.cs` - AppList generation and GreenLuma launch
+    - `UpdateService.cs` - Auto-update functionality
+    - `IconCacheService.cs` - Icon caching and management
 - `Models/` - Data models
-  - `Config.cs` - Application configuration model
-  - `Profile.cs` - Game profile model
-  - `Game.cs` - Game data with INotifyPropertyChanged
-  - `UpdateInfo.cs` - Update information model
+    - `Config.cs` - Application configuration model
+    - `Profile.cs` - Game profile model
+    - `Game.cs` - Game data with INotifyPropertyChanged
+    - `UpdateInfo.cs` - Update information model
 - `Dialogs/` - WPF dialog windows
-  - `SettingsDialog.xaml` - Settings UI
-  - `CreateProfileDialog.xaml` - Profile creation UI
-  - `CustomMessageBox.xaml` - Custom message boxes
+    - `SettingsDialog.xaml` - Settings UI
+    - `CreateProfileDialog.xaml` - Profile creation UI
+    - `CustomMessageBox.xaml` - Custom message boxes
 - `Utilities/` - Helper classes
-  - `PathDetector.cs` - Auto-detection of Steam/GreenLuma paths
-  - `IconUrlConverter.cs` - WPF value converter for icons
-  - `AutostartManager.cs` - Windows startup integration
+    - `PathDetector.cs` - Auto-detection of Steam/GreenLuma paths
+    - `IconUrlConverter.cs` - WPF value converter for icons
+    - `AutostartManager.cs` - Windows startup integration
 - `MainWindow.xaml` - Main application window
 
 ## Code Style
@@ -76,6 +76,7 @@ Thank you for your interest in contributing to GreenLuma Manager!
 ## Testing
 
 Before submitting:
+
 - Build in both Debug and Release configurations
 - Test all modified features
 - Verify no binding errors in debug output
@@ -86,6 +87,7 @@ Before submitting:
 ## Reporting Bugs
 
 Use the GitHub Issues tab and include:
+
 - Clear description of the bug
 - Steps to reproduce
 - Expected vs actual behavior
@@ -96,6 +98,7 @@ Use the GitHub Issues tab and include:
 ## Feature Requests
 
 Open an issue with:
+
 - Clear description of the feature
 - Why it would be useful
 - Any implementation ideas

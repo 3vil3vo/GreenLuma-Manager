@@ -1,6 +1,7 @@
 # GreenLuma Manager
 
-A modern desktop app for managing your GreenLuma AppList. No more entering app IDs one by one - just search, click, and launch.
+A modern desktop app for managing your GreenLuma AppList. No more entering app IDs one by one - just search, click, and
+launch.
 
 ![Version](https://img.shields.io/github/v/release/3vil3vo/GreenLuma-Manager?label=version)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -31,6 +32,7 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
 ### Building from Source
 
 #### Prerequisites
+
 - Visual Studio 2022 or later
 - .NET 10.0 or higher
 
@@ -43,37 +45,37 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
    ```
 
 2. **Open in Visual Studio**
-   - Open `GreenLuma-Manager.slnx`
+    - Open `GreenLuma-Manager.slnx`
 
 3. **Restore NuGet packages**
-   - Right-click solution → Restore NuGet Packages
+    - Right-click solution → Restore NuGet Packages
 
 4. **Build the project**
-   - Build → Build Solution (Ctrl+Shift+B)
-   - Find the executable in `bin/Debug/` or `bin/Release/`
+    - Build → Build Solution (Ctrl+Shift+B)
+    - Find the executable in `bin/Debug/` or `bin/Release/`
 
 ## How to Use
 
 1. **First Time Setup**
-   - On first launch, the app auto-detects Steam and GreenLuma paths
-   - If migrating from RC3, your settings and profiles are automatically imported
-   - Adjust settings in Settings (⚙️) if needed
+    - On first launch, the app auto-detects Steam and GreenLuma paths
+    - If migrating from RC3, your settings and profiles are automatically imported
+    - Adjust settings in Settings (⚙️) if needed
 
 2. **Finding Games**
-   - Type a game name or AppID into the search box
-   - Results appear instantly from Steam's database with icons
-   - Click the + button to add games to your current profile
+    - Type a game name or AppID into the search box
+    - Results appear instantly from Steam's database with icons
+    - Click the + button to add games to your current profile
 
 3. **Managing Profiles**
-   - Select a profile from the dropdown menu
-   - Create new profiles with the + button
-   - Add games with +, remove with the delete button
-   - Each profile is saved automatically
+    - Select a profile from the dropdown menu
+    - Create new profiles with the + button
+    - Add games with +, remove with the delete button
+    - Each profile is saved automatically
 
 4. **Launching GreenLuma**
-   - Click "Generate AppList" to write files to your GreenLuma folder
-   - Hit "Launch GreenLuma" - the app will close Steam and start GreenLuma
-   - Enable stealth mode in settings for discrete injection
+    - Click "Generate AppList" to write files to your GreenLuma folder
+    - Hit "Launch GreenLuma" - the app will close Steam and start GreenLuma
+    - Enable stealth mode in settings for discrete injection
 
 ## Requirements
 
@@ -82,14 +84,14 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
 - Steam installed
 - GreenLuma 2025/6 installed
 
-
 ## Special Thanks
 
 Shoutout to [BlueAmulet's GreenLuma-2025-Manager](https://github.com/BlueAmulet/GreenLuma-2025-Manager) for inspiration.
 
 ## Contributing
 
-Found a bug? Want to add a feature? Pull requests are always welcome! Check [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Found a bug? Want to add a feature? Pull requests are always welcome! Check [CONTRIBUTING.md](CONTRIBUTING.md) for
+guidelines.
 
 ## License
 
