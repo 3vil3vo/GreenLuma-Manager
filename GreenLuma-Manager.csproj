@@ -37,6 +37,12 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Update="Data\steam_applist_legacy.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
         <None Update="icon.ico">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>

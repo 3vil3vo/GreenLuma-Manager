@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.IO;
 using System.Text.Json;
 using GreenLuma_Manager.Models;
 
@@ -68,6 +69,10 @@ public class SearchService
 
     private const string SteamStoreApiUrl = "https://api.steampowered.com/IStoreService/GetAppList/v1/";
     private const int BatchSize = 150;
+    private const int AppListPageSize = 50000;
+
+    private static readonly string LocalLegacyPath =
+        Path.Combine(AppContext.BaseDirectory, "Data", "steam_applist_legacy.json");
 
     private static string _steamApiKey = string.Empty;
     private static bool _showHiddenDlcs;
@@ -100,7 +105,9 @@ public class SearchService
         try
         {
             var url = string.Format(SteamStoreSearchUrl, Uri.EscapeDataString(query));
-            var response = await HttpClientProvider.Default.GetStringAsync(url, ct).ConfigureAwait(false);
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, ct);
+            var response = await HttpClientProvider.Default.GetStringAsync(url, linkedCts.Token).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(response);
             var root = doc.RootElement;
 
@@ -135,9 +142,6 @@ public class SearchService
 
     private static async Task<List<SteamApp>> GetAppListAsync(CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_steamApiKey))
-            return _appListCache ?? [];
-
         if (_appListCache != null && DateTime.Now < _cacheExpiry)
             return _appListCache;
 
@@ -147,14 +151,71 @@ public class SearchService
             if (_appListCache != null && DateTime.Now < _cacheExpiry)
                 return _appListCache;
 
-            _appListCache = [];
-            uint lastAppId = 0;
-            const int maxResults = 50000;
+            var legacyTask = FetchLegacyAppListAsync(ct);
+            var modernTask = string.IsNullOrWhiteSpace(_steamApiKey)
+                ? Task.FromResult(new List<SteamApp>())
+                : FetchModernAppListAsync(_steamApiKey, ct);
 
+            await Task.WhenAll(legacyTask, modernTask).ConfigureAwait(false);
+
+            _appListCache = MergeAppLists(legacyTask.Result, modernTask.Result);
+            _cacheExpiry = DateTime.Now.Add(CacheDuration);
+            return _appListCache;
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SearchService.GetAppList", ex);
+            return _appListCache ?? [];
+        }
+        finally
+        {
+            _isPrefetching = false;
+            AppListLock.Release();
+        }
+    }
+
+    private static async Task<List<SteamApp>> FetchLegacyAppListAsync(CancellationToken ct)
+    {
+        var results = new List<SteamApp>();
+        try
+        {
+            if (!File.Exists(LocalLegacyPath)) return results;
+
+            using var stream = new FileStream(LocalLegacyPath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536,
+                FileOptions.Asynchronous);
+            using var doc = await JsonDocument.ParseAsync(stream, default, ct).ConfigureAwait(false);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("applist", out var applist)) return results;
+            if (!applist.TryGetProperty("apps", out var apps)) return results;
+
+            foreach (var app in apps.EnumerateArray())
+            {
+                var appId = app.TryGetProperty("appid", out var aidProp) ? aidProp.ToString() : string.Empty;
+                var name = app.TryGetProperty("name", out var nProp) ? nProp.GetString() ?? string.Empty : string.Empty;
+
+                if (!string.IsNullOrWhiteSpace(appId) && !string.IsNullOrWhiteSpace(name))
+                    results.Add(new SteamApp(appId, name, name.ToLowerInvariant()));
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SearchService.FetchLegacyAppList", ex);
+        }
+
+        return results;
+    }
+
+    private static async Task<List<SteamApp>> FetchModernAppListAsync(string apiKey, CancellationToken ct)
+    {
+        var results = new List<SteamApp>();
+        try
+        {
+            uint lastAppId = 0;
             while (true)
             {
                 var url =
-                    $"{SteamStoreApiUrl}?key={Uri.EscapeDataString(_steamApiKey)}&include_games=true&include_dlc=true&include_software=true&include_videos=true&include_hardware=true&max_results={maxResults}&last_appid={lastAppId}";
+                    $"{SteamStoreApiUrl}?key={Uri.EscapeDataString(apiKey)}&include_games=true&include_dlc=true&include_software=true&include_videos=true&include_hardware=true&max_results={AppListPageSize}&last_appid={lastAppId}";
 
                 var response = await HttpClientProvider.Default.GetStringAsync(url, ct).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(response);
@@ -173,15 +234,14 @@ public class SearchService
                         : string.Empty;
 
                     if (!string.IsNullOrWhiteSpace(appId) && !string.IsNullOrWhiteSpace(name))
-                        _appListCache.Add(new SteamApp(appId, name, name.ToLowerInvariant()));
+                        results.Add(new SteamApp(appId, name, name.ToLowerInvariant()));
                 }
 
                 if (!hasApps) break;
 
                 var haveMore = responseElem.TryGetProperty("have_more_results", out var hmProp) &&
                                hmProp.ValueKind == JsonValueKind.True;
-                if (!haveMore)
-                    break;
+                if (!haveMore) break;
 
                 if (responseElem.TryGetProperty("last_appid", out var laProp) &&
                     laProp.TryGetUInt32(out var newLastAppId))
@@ -189,20 +249,33 @@ public class SearchService
                 else
                     break;
             }
-
-            _cacheExpiry = DateTime.Now.Add(CacheDuration);
-            _isPrefetching = false;
-            return _appListCache;
         }
         catch (Exception ex)
         {
-            _isPrefetching = false;
-            LogService.LogError("SearchService.GetAppList", ex);
-            return _appListCache ?? [];
+            LogService.LogError("SearchService.FetchModernAppList", ex);
         }
-        finally
+
+        return results;
+    }
+
+    private static List<SteamApp> MergeAppLists(List<SteamApp> legacy, List<SteamApp> modern)
+    {
+        var merged = new Dictionary<string, SteamApp>(legacy.Count + modern.Count);
+
+        foreach (var app in legacy)
+            merged[app.AppId] = app;
+
+        foreach (var app in modern)
+            merged[app.AppId] = app;
+
+        try
         {
-            AppListLock.Release();
+            return [.. merged.Values.OrderBy(a => uint.TryParse(a.AppId, out var id) ? id : uint.MaxValue)];
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("SearchService.MergeAppLists", ex);
+            return [.. merged.Values];
         }
     }
 
@@ -257,30 +330,19 @@ public class SearchService
 
                 var storeTask = SearchStoreAsync(query, ct);
 
-                var localTask = Task.Run(async () =>
-                {
-                    var appList = await GetAppListAsync(ct).ConfigureAwait(false);
-                    if (appList.Count == 0) return [];
-
-                    return appList
+                var appList = _appListCache;
+                List<Game> localResults = [];
+                if (appList is { Count: > 0 } && DateTime.Now < _cacheExpiry)
+                    localResults = appList
                         .Select(app => (app, score: CalculateScore(app.NameLower, queryLower)))
                         .Where(x => x.score > 0)
                         .OrderByDescending(x => x.score)
                         .ThenBy(x => x.app.Name.Length)
                         .Take(maxResults)
-                        .Select(x => new Game
-                        {
-                            AppId = x.app.AppId,
-                            Name = x.app.Name,
-                            Type = "Game"
-                        })
+                        .Select(x => new Game { AppId = x.app.AppId, Name = x.app.Name, Type = "Game" })
                         .ToList();
-                });
 
-                await Task.WhenAll(storeTask, localTask).ConfigureAwait(false);
-
-                var smartResults = storeTask.Result;
-                var localResults = localTask.Result;
+                var smartResults = await storeTask.ConfigureAwait(false);
 
                 var finalResults = new List<Game>(localResults);
                 var existingIds = new HashSet<string>(localResults.Select(g => g.AppId));
