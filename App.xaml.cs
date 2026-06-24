@@ -42,6 +42,7 @@ public partial class App
             IconCacheService.DeleteUnusedIcons(valid);
             _ = Task.Run(() => WarmupIconsAsync(profiles));
             _ = SearchService.PrefetchAsync(config);
+            _ = Task.Run(() => { _ = SteamService.Instance; });
         }
         catch (Exception ex)
         {
@@ -68,106 +69,92 @@ public partial class App
     {
         try
         {
-            using (var semaphore = new SemaphoreSlim(6))
+            using var semaphore = new SemaphoreSlim(6);
+            var tasks = new List<Task>();
+
+            foreach (var profile in profiles)
             {
-                var tasks = new List<Task>();
-
-                foreach (var profile in profiles)
+                var changed = false;
+                foreach (var game in profile.Games)
                 {
-                    var changed = false;
-                    foreach (var game in profile.Games)
+                    if (string.IsNullOrWhiteSpace(game.AppId))
+                        continue;
+
+                    var cached = IconCacheService.GetCachedIconPath(game.AppId);
+                    if (string.IsNullOrEmpty(cached))
                     {
-                        if (string.IsNullOrWhiteSpace(game.AppId))
-                            continue;
-
-                        var cached = IconCacheService.GetCachedIconPath(game.AppId);
-                        if (string.IsNullOrEmpty(cached))
+                        await semaphore.WaitAsync();
+                        tasks.Add(Task.Run(async () =>
                         {
-                            await semaphore.WaitAsync();
-
-                            var currentSem = semaphore;
-                            var targetGame = game;
-
-                            var t = Task.Run(async () =>
+                            try
                             {
-                                try
-                                {
-                                    string? path = null;
-                                    if (!string.IsNullOrWhiteSpace(targetGame.IconUrl))
-                                        path = await IconCacheService.DownloadAndCacheIconAsync(targetGame.AppId,
-                                            targetGame.IconUrl);
+                                string? path = null;
+                                if (!string.IsNullOrWhiteSpace(game.IconUrl))
+                                    path = await IconCacheService.DownloadAndCacheIconAsync(game.AppId, game.IconUrl);
 
-                                    if (string.IsNullOrEmpty(path))
-                                    {
-                                        await SearchService.FetchIconUrlAsync(targetGame);
-                                        if (!string.IsNullOrWhiteSpace(targetGame.IconUrl))
-                                            path = await IconCacheService.DownloadAndCacheIconAsync(targetGame.AppId,
-                                                targetGame.IconUrl);
-                                    }
+                                if (string.IsNullOrEmpty(path))
+                                {
+                                    await SearchService.FetchIconUrlAsync(game);
+                                    if (!string.IsNullOrWhiteSpace(game.IconUrl))
+                                        path = await IconCacheService.DownloadAndCacheIconAsync(game.AppId,
+                                            game.IconUrl);
+                                }
 
-                                    if (!string.IsNullOrEmpty(path))
-                                    {
-                                        targetGame.IconUrl = path;
-                                        changed = true;
-                                    }
-                                }
-                                catch (Exception ex)
+                                if (!string.IsNullOrEmpty(path))
                                 {
-                                    LogService.LogError("App.WarmupIcon", ex);
+                                    game.IconUrl = path;
+                                    changed = true;
                                 }
-                                finally
-                                {
-                                    currentSem.Release();
-                                }
-                            });
-                            tasks.Add(t);
-                        }
-                        else if (!string.IsNullOrWhiteSpace(game.IconUrl) && !File.Exists(cached))
+                            }
+                            catch (Exception ex)
+                            {
+                                LogService.LogError("App.WarmupIcon", ex);
+                            }
+                            finally
+                            {
+                                semaphore.Release();
+                            }
+                        }));
+                    }
+                    else if (!string.IsNullOrWhiteSpace(game.IconUrl) && !File.Exists(cached))
+                    {
+                        await semaphore.WaitAsync();
+                        tasks.Add(Task.Run(async () =>
                         {
-                            await semaphore.WaitAsync();
-
-                            var currentSem = semaphore;
-                            var targetGame = game;
-
-                            var t2 = Task.Run(async () =>
+                            try
                             {
-                                try
+                                var path = await IconCacheService.DownloadAndCacheIconAsync(game.AppId, game.IconUrl);
+                                if (!string.IsNullOrEmpty(path))
                                 {
-                                    var path = await IconCacheService.DownloadAndCacheIconAsync(targetGame.AppId,
-                                        targetGame.IconUrl);
-                                    if (!string.IsNullOrEmpty(path))
-                                    {
-                                        targetGame.IconUrl = path;
-                                        changed = true;
-                                    }
+                                    game.IconUrl = path;
+                                    changed = true;
                                 }
-                                catch (Exception ex)
-                                {
-                                    LogService.LogError("App.WarmupIconRedownload", ex);
-                                }
-                                finally
-                                {
-                                    currentSem.Release();
-                                }
-                            });
-                            tasks.Add(t2);
-                        }
+                            }
+                            catch (Exception ex)
+                            {
+                                LogService.LogError("App.WarmupIconRedownload", ex);
+                            }
+                            finally
+                            {
+                                semaphore.Release();
+                            }
+                        }));
+                    }
+                }
+
+                await Task.WhenAll(tasks);
+
+                if (changed)
+                    try
+                    {
+                        ProfileService.Save(profile);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogService.LogError("App.WarmupSave", ex);
                     }
 
-                    await Task.WhenAll(tasks);
-
-                    if (changed)
-                        try
-                        {
-                            ProfileService.Save(profile);
-                        }
-                        catch (Exception ex)
-                        {
-                            LogService.LogError("App.WarmupSave", ex);
-                        }
-
-                    tasks.Clear();
-                }
+                tasks.Clear();
             }
         }
         catch (Exception ex)
