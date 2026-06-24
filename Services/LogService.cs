@@ -32,7 +32,6 @@ public static class LogService
         }
         catch
         {
-            // ignored
         }
     }
 
@@ -53,7 +52,6 @@ public static class LogService
         }
         catch
         {
-            // ignored
         }
     }
 

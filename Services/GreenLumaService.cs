@@ -291,7 +291,6 @@ public partial class GreenLumaService
                         }
                         catch
                         {
-                            // ignored
                         }
                         finally
                         {
@@ -610,7 +609,6 @@ public partial class GreenLumaService
         }
         catch
         {
-            /* Best effort */
         }
 
         var conflictingFiles = new[] { "RTSSHooks64.dll", "RTSSHooks.dll" };
@@ -791,7 +789,6 @@ public partial class GreenLumaService
         }
         catch
         {
-            /* Event log may not be accessible */
         }
 
         return null;

@@ -56,7 +56,7 @@ public partial class SettingsDialog
         else if (NavAdvanced.IsChecked == true) ShowView(ViewAdvanced);
     }
 
-    private void ShowView(UIElement view)
+    private static void ShowView(UIElement view)
     {
         view.Visibility = Visibility.Visible;
     }
@@ -179,7 +179,6 @@ public partial class SettingsDialog
                 }
                 catch
                 {
-                    // ignored
                 }
 
             Process.Start(new ProcessStartInfo
