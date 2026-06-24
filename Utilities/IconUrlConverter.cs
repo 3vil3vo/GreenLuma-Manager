@@ -19,6 +19,7 @@ public class IconUrlConverter : IValueConverter
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.UriSource = new Uri(iconUrl, UriKind.Absolute);
+                bmp.DecodeFailed += static (_, _) => { };
                 bmp.CacheOption = BitmapCacheOption.OnDemand;
                 bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
                 bmp.DecodePixelWidth = 64;
@@ -30,6 +31,9 @@ public class IconUrlConverter : IValueConverter
 
             if (File.Exists(iconUrl))
             {
+                if (string.Equals(Path.GetExtension(iconUrl), ".ico", StringComparison.OrdinalIgnoreCase))
+                    return LoadIco(iconUrl);
+
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.UriSource = new Uri(iconUrl, UriKind.Absolute);
@@ -52,5 +56,24 @@ public class IconUrlConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
+    }
+
+    private static BitmapSource? LoadIco(string path)
+    {
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var decoder =
+                new IconBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+            if (decoder.Frames.Count == 0) return null;
+            var frame = decoder.Frames.OrderByDescending(f => f.PixelWidth).First();
+            var result = BitmapFrame.Create(frame);
+            result.Freeze();
+            return result;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
