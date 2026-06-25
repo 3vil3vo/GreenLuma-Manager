@@ -8,7 +8,6 @@ namespace GreenLuma_Manager.Controllers;
 
 public class GameListController
 {
-    private readonly ItemsControl _lstGames;
     private readonly NotificationManager _notificationManager;
     private readonly UIElement _pnlEmptyGames;
 
@@ -17,11 +16,10 @@ public class GameListController
 
     public GameListController(ItemsControl lstGames, UIElement pnlEmptyGames, NotificationManager notificationManager)
     {
-        _lstGames = lstGames;
         _pnlEmptyGames = pnlEmptyGames;
         _notificationManager = notificationManager;
 
-        _lstGames.ItemsSource = CollectionViewSource.GetDefaultView(Games);
+        lstGames.ItemsSource = CollectionViewSource.GetDefaultView(Games);
     }
 
     public ObservableCollection<Game> Games { get; } = [];
@@ -69,8 +67,18 @@ public class GameListController
             }
 
             if (typeFilter != null)
-                if (!string.Equals(game.Type, typeFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.Equals(typeFilter, "Other", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (string.Equals(game.Type, "Game", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(game.Type, "DLC", StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+                else if (!string.Equals(game.Type, typeFilter, StringComparison.OrdinalIgnoreCase))
+                {
                     return false;
+                }
+            }
 
             return true;
         };

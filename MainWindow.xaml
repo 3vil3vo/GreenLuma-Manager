@@ -1923,6 +1923,7 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <Path
                                     Grid.Column="0"
@@ -1955,11 +1956,16 @@
                                         Text="Search games..."
                                         VerticalAlignment="Center" />
                                 </Grid>
+                                <Border
+                                    Grid.Column="2"
+                                    Width="1"
+                                    Margin="0,8,0,8"
+                                    Background="{StaticResource Border}" />
                                 <ComboBox
                                     x:Name="CmbGameTypeFilter"
-                                    Grid.Column="2"
+                                    Grid.Column="3"
                                     Width="96"
-                                    Margin="0,0,8,0"
+                                    Margin="8,0,8,0"
                                     VerticalAlignment="Center"
                                     SelectionChanged="CmbGameTypeFilter_SelectionChanged"
                                     Style="{StaticResource FilterCombo}">
@@ -1969,6 +1975,7 @@
                                             <Setter Property="BorderThickness" Value="0" />
                                             <Setter Property="Foreground" Value="{StaticResource Text}" />
                                             <Setter Property="Padding" Value="8,6" />
+                                            <Setter Property="Margin" Value="0,1,0,1" />
                                             <Setter Property="Template">
                                                 <Setter.Value>
                                                     <ControlTemplate TargetType="ComboBoxItem">
@@ -1994,6 +2001,7 @@
                                     <ComboBoxItem IsSelected="True">All</ComboBoxItem>
                                     <ComboBoxItem>Game</ComboBoxItem>
                                     <ComboBoxItem>DLC</ComboBoxItem>
+                                    <ComboBoxItem>Other</ComboBoxItem>
                                 </ComboBox>
                             </Grid>
                         </Border>
