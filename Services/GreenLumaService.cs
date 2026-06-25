@@ -289,8 +289,9 @@ public partial class GreenLumaService
                         {
                             if (!p.HasExited) p.Kill();
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            LogService.LogError("GreenLumaService.Kill", ex);
                         }
                         finally
                         {
@@ -559,7 +560,7 @@ public partial class GreenLumaService
 
         var injectorPath = Path.Combine(config.GreenLumaPath, "DLLInjector.exe");
         if (!File.Exists(injectorPath))
-            issues.Add("DLLInjector.exe is missing — likely deleted by antivirus.");
+            issues.Add("DLLInjector.exe is missing. It was likely deleted by antivirus.");
 
         var iniPath = Path.Combine(config.GreenLumaPath, "DLLInjector.ini");
         if (!File.Exists(iniPath))
@@ -574,13 +575,13 @@ public partial class GreenLumaService
                 if (!File.Exists(dllPath))
                 {
                     issues.Add(
-                        $"GreenLuma DLL not found: {Path.GetFileName(dllPath)} — likely quarantined by antivirus.");
+                        $"GreenLuma DLL not found: {Path.GetFileName(dllPath)}. Antivirus may have quarantined it.");
                 }
                 else
                 {
                     var info = new FileInfo(dllPath);
                     if (info.Length < 1024)
-                        issues.Add($"GreenLuma DLL is only {info.Length} bytes — possibly corrupted.");
+                        issues.Add($"GreenLuma DLL is only {info.Length} bytes. The file may be corrupted.");
                 }
             }
         }
@@ -603,12 +604,13 @@ public partial class GreenLumaService
             {
                 var glPath = config.GreenLumaPath.ToLowerInvariant();
                 var recentQuarantine = CheckRecentDefenderDetections(glPath);
-                if (recentQuarantine != null)
-                    issues.Add($"Windows Defender recently quarantined: {recentQuarantine}");
+                if (recentQuarantine != null && !File.Exists(injectorPath))
+                    issues.Add($"Windows Defender quarantined a GreenLuma file. {recentQuarantine}");
             }
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("GreenLumaService.DefenderCheck", ex);
         }
 
         var conflictingFiles = new[] { "RTSSHooks64.dll", "RTSSHooks.dll" };
@@ -651,7 +653,7 @@ public partial class GreenLumaService
                     var injectorCrash = GetCrashFromEventLog("DLLInjector", launchTime);
                     if (injectorCrash != null)
                         return $"DLLInjector.exe crashed: {injectorCrash}";
-                    return "Steam process never started — DLLInjector may have failed silently. Check antivirus logs.";
+                    return "Steam did not start. DLLInjector may have failed silently. Check your antivirus logs.";
                 }
 
                 var remainingMs = timeoutSeconds * 1000 - waitMs;
@@ -787,8 +789,9 @@ public partial class GreenLumaService
                     }
                 }
         }
-        catch
+        catch (Exception ex)
         {
+            LogService.LogError("GreenLumaService.QuarantineCheck", ex);
         }
 
         return null;
