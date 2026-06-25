@@ -65,7 +65,12 @@ public class SearchController
             return;
         }
 
-        if (_searchCts != null) await _searchCts.CancelAsync();
+        if (_searchCts != null)
+        {
+            await _searchCts.CancelAsync();
+            _searchCts.Dispose();
+        }
+
         _searchCts = new CancellationTokenSource();
 
         try
@@ -94,14 +99,26 @@ public class SearchController
 
         DisplayResults(results);
 
+        if (results.Count == 0) return;
+
         _ = Task.Run(async () =>
         {
             try
             {
-                await SearchService.FetchIconUrlsAsync(results);
+                await SearchService.FetchIconUrlsAsync(results, () =>
+                {
+                    if (!token.IsCancellationRequested)
+                        Application.Current.Dispatcher.Invoke(() => ResultsLoaded?.Invoke());
+                });
             }
-            catch
+            catch (Exception ex)
             {
+                LogService.LogError("SearchController.FetchIcons", ex);
+            }
+            finally
+            {
+                if (!token.IsCancellationRequested)
+                    Application.Current.Dispatcher.Invoke(() => ResultsLoaded?.Invoke());
             }
         }, token);
     }

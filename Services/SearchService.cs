@@ -79,7 +79,7 @@ public class SearchService
     private static readonly ConcurrentDictionary<string, GameDetails> DetailsCache = new();
     private static DateTime _cacheExpiry = DateTime.MinValue;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
-    private static bool _isPrefetching;
+    private static volatile bool _isPrefetching;
 
     public static void SetApiKey(string? apiKey)
     {
@@ -168,7 +168,7 @@ public class SearchService
             var legacy = await FetchLegacyAppListAsync(ct).ConfigureAwait(false);
             if (_appListCache == null)
                 _appListCache = legacy;
-            return _appListCache ?? [];
+            return _appListCache;
         }
         catch (Exception ex)
         {
@@ -181,16 +181,16 @@ public class SearchService
         }
     }
 
-    private static async Task<List<SteamApp>> GetAppListAsync(CancellationToken ct = default)
+    private static async Task GetAppListAsync(CancellationToken ct = default)
     {
         if (_appListCache != null && DateTime.Now < _cacheExpiry)
-            return _appListCache;
+            return;
 
         await AppListLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             if (_appListCache != null && DateTime.Now < _cacheExpiry)
-                return _appListCache;
+                return;
 
             var legacyTask = _appListCache != null
                 ? Task.FromResult(_appListCache)
@@ -203,12 +203,10 @@ public class SearchService
 
             _appListCache = MergeAppLists(legacyTask.Result, modernTask.Result);
             _cacheExpiry = DateTime.Now.Add(CacheDuration);
-            return _appListCache;
         }
         catch (Exception ex)
         {
             LogService.LogError("SearchService.GetAppList", ex);
-            return _appListCache ?? [];
         }
         finally
         {
@@ -582,7 +580,8 @@ public class SearchService
         await PopulateGameDetailsAsync(game, ct).ConfigureAwait(false);
     }
 
-    public static async Task FetchIconUrlsAsync(List<Game> games, CancellationToken ct = default)
+    public static async Task FetchIconUrlsAsync(List<Game> games, Action? onTypesLoaded = null,
+        CancellationToken ct = default)
     {
         var appIds = games.Select(g => g.AppId).Distinct().ToList();
         var detailsMap = await FetchGameDetailsBatchAsync(appIds).ConfigureAwait(false);
@@ -594,6 +593,8 @@ public class SearchService
                     game.Name = details.Name;
                 game.Type = details.Type;
             }
+
+        onTypesLoaded?.Invoke();
 
         var semaphore = new SemaphoreSlim(8);
         var tasks = games.Select(async game =>
