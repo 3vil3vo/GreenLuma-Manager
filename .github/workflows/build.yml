@@ -6,6 +6,10 @@ on:
       - "v*"
   workflow_dispatch:
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -14,34 +18,30 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v7
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
+          cache: true
 
       - name: Restore dependencies
         run: dotnet restore GreenLuma-Manager.csproj
 
       - name: Publish single-file executable
-        run: dotnet publish GreenLuma-Manager.csproj -r win-x64 -p:PublishSingleFile=true -p:SelfContained=false -c Release -o dist
+        run: dotnet publish GreenLuma-Manager.csproj -r win-x64 -p:PublishSingleFile=true -p:SelfContained=false -c Release --no-restore -o dist -v:m
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: GreenLuma-Manager
           path: dist/GreenLuma-Manager.exe
 
-      - name: Get tag name
-        if: startsWith(github.ref, 'refs/tags/')
-        id: tag
-        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        shell: bash
-
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/GreenLuma-Manager.exe
           generate_release_notes: true
