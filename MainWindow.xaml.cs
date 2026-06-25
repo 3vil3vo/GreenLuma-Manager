@@ -77,8 +77,8 @@ public partial class MainWindow
         if (_config != null)
         {
             TglStealthMode.IsChecked = _config.NoHook;
+            SanitizeApiKey(_config);
             SearchService.SetApiKey(_config.SteamApiKey);
-            SearchService.SetShowHiddenDlcs(_config.ShowHiddenDlcs);
             if (_config.WindowWidth >= MinWidth && _config.WindowHeight >= MinHeight)
             {
                 Width = _config.WindowWidth;
@@ -92,6 +92,7 @@ public partial class MainWindow
         _gameListController.UpdateGameListState();
         UpdatePluginButtons();
         CheckPathsOnStartup();
+        CheckApiKeyOnStartup();
         CheckForUpdates();
         UpdateStatus();
     }
@@ -183,10 +184,27 @@ public partial class MainWindow
         storyboard.Begin();
     }
 
+    private static void SanitizeApiKey(Config config)
+    {
+        if (config.SteamApiKey == "1DD0450A99F573693CD031EBB160907D")
+        {
+            config.SteamApiKey = string.Empty;
+            ConfigService.Save(config);
+        }
+    }
+
+    private void MaybeShowApiKeyNotice()
+    {
+        if (!string.IsNullOrWhiteSpace(_config?.SteamApiKey)) return;
+        _notificationManager.ShowToast("No Steam API key set! Please add one in Settings.", false);
+    }
+
     private void SearchInput_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Return)
-            _ = _searchController.ExecuteSearchAsync(TxtSearchInput.Text.Trim());
+        if (e.Key != Key.Return) return;
+        var query = TxtSearchInput.Text.Trim();
+        if (query.Length >= 3) MaybeShowApiKeyNotice();
+        _ = _searchController.ExecuteSearchAsync(query);
     }
 
     private async void SearchButton_Click(object sender, RoutedEventArgs e)
@@ -199,6 +217,7 @@ public partial class MainWindow
             return;
         }
 
+        if (query.Length >= 3) MaybeShowApiKeyNotice();
         await _searchController.ExecuteSearchAsync(query);
     }
 
@@ -1030,8 +1049,8 @@ public partial class MainWindow
             if (dialog.ShowDialog() == true)
             {
                 _config = ConfigService.Load();
+                SanitizeApiKey(_config);
                 SearchService.SetApiKey(_config.SteamApiKey);
-                SearchService.SetShowHiddenDlcs(_config.ShowHiddenDlcs);
                 _profileController.Config = _config;
                 UpdateStatus();
 
@@ -1251,6 +1270,23 @@ public partial class MainWindow
                 "Steam and GreenLuma paths could not be detected automatically.\n\n" +
                 "Please configure them in Settings to use all features.",
                 "Setup Required",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Asterisk);
+
+            if (result == MessageBoxResult.OK) SettingsButton_Click(null, null!);
+        }), DispatcherPriority.Loaded);
+    }
+
+    private void CheckApiKeyOnStartup()
+    {
+        if (_config == null || !string.IsNullOrWhiteSpace(_config.SteamApiKey)) return;
+
+        Dispatcher.BeginInvoke((Action)(() =>
+        {
+            var result = CustomMessageBox.Show(
+                "No Steam API key is configured.\n\n" +
+                "A key is required for full search coverage. Add one in Settings.",
+                "Steam API Key Missing",
                 MessageBoxButton.OKCancel,
                 MessageBoxImage.Asterisk);
 
