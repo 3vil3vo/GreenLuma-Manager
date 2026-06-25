@@ -54,7 +54,7 @@ public partial class MainWindow
             PnlResultsHeader, BtnAddAll, _notificationManager);
 
         _profileController = new ProfileController(
-            CmbProfile, _profiles, _gameListController, _launcher, _notificationManager);
+            CmbProfile, _profiles, _gameListController, _notificationManager);
 
         _appListController = new AppListController(
             _profileController, _gameListController, _launcher, _notificationManager);
@@ -224,8 +224,13 @@ public partial class MainWindow
 
     private void ResultFilter_Changed(object sender, RoutedEventArgs e)
     {
-        if (BtnHideAdded == null) return;
+        UpdateResultCount();
+        if (DgResults?.Items.Count > 0) DgResults.ScrollIntoView(DgResults.Items[0]!);
+    }
 
+    private void UpdateResultCount()
+    {
+        if (BtnHideAdded == null || TxtResultCount == null) return;
         var view = CollectionViewSource.GetDefaultView(_searchController.SearchResults);
         view.Filter = item =>
         {
@@ -239,16 +244,6 @@ public partial class MainWindow
                        && !string.Equals(g.Type, "DLC", StringComparison.OrdinalIgnoreCase);
             return true;
         };
-
-        UpdateResultCount();
-        if (DgResults.Items.Count > 0) DgResults.ScrollIntoView(DgResults.Items[0]);
-    }
-
-    private void UpdateResultCount()
-    {
-        if (TxtResultCount == null) return;
-        var view = CollectionViewSource.GetDefaultView(_searchController.SearchResults);
-        view.Refresh();
         var visible = view.Cast<object>().Count();
         TxtResultCount.Text = $"Showing {visible} of {_searchController.TotalResultCount} results";
     }
@@ -549,13 +544,7 @@ public partial class MainWindow
         if (_profileLoadCts != null)
         {
             _profileLoadCts.Cancel();
-
-            var oldCts = _profileLoadCts;
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(100, oldCts.Token);
-                oldCts.Dispose();
-            }, oldCts.Token);
+            _profileLoadCts.Dispose();
         }
 
         _profileLoadCts = new CancellationTokenSource();
@@ -571,46 +560,44 @@ public partial class MainWindow
             await Task.Delay(100, token);
             if (token.IsCancellationRequested) return;
 
-            var gamesToProcess = _gameListController.Games.ToList();
-            var semaphore = new SemaphoreSlim(6);
+            var gamesToProcess = _gameListController.Games
+                .Where(g => string.IsNullOrWhiteSpace(g.IconUrl))
+                .ToList();
 
-            var tasks = gamesToProcess.Select(async game =>
-            {
-                await semaphore.WaitAsync(token);
-                try
+            await Parallel.ForEachAsync(
+                gamesToProcess,
+                new ParallelOptions { MaxDegreeOfParallelism = 6, CancellationToken = token },
+                async (game, ct) =>
                 {
-                    if (token.IsCancellationRequested) return;
-                    if (!string.IsNullOrWhiteSpace(game.IconUrl)) return;
-
-                    var tempGame = new Game { AppId = game.AppId, Name = string.Empty, Type = "Game" };
-                    await SearchService.PopulateGameDetailsAsync(tempGame).ConfigureAwait(false);
-
-                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    try
                     {
-                        if (token.IsCancellationRequested) return;
+                        var tempGame = new Game { AppId = game.AppId, Name = string.Empty, Type = "Game" };
+                        await SearchService.PopulateGameDetailsAsync(tempGame).ConfigureAwait(false);
 
-                        if (!string.IsNullOrEmpty(tempGame.Name))
-                            game.Name = tempGame.Name;
-
-                        game.Type = tempGame.Type;
-
-                        if (!string.IsNullOrEmpty(tempGame.IconUrl))
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
                         {
-                            game.IconUrl = tempGame.IconUrl;
-                            _profileController.SaveCurrentProfile();
-                        }
-                    }, DispatcherPriority.Background);
-                }
-                catch
-                {
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            });
+                            if (ct.IsCancellationRequested) return;
 
-            await Task.WhenAll(tasks);
+                            if (!string.IsNullOrEmpty(tempGame.Name))
+                                game.Name = tempGame.Name;
+
+                            game.Type = tempGame.Type;
+
+                            if (!string.IsNullOrEmpty(tempGame.IconUrl))
+                            {
+                                game.IconUrl = tempGame.IconUrl;
+                                _profileController.SaveCurrentProfile();
+                            }
+                        }, DispatcherPriority.Background);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        LogService.LogError("MainWindow.ProfileLoadIcon", ex);
+                    }
+                });
         }, token);
     }
 
@@ -998,7 +985,7 @@ public partial class MainWindow
 
                 if (await _launcher.LaunchAsync(_config).ConfigureAwait(true))
                 {
-                    _notificationManager.ShowToast("GreenLuma launched — monitoring Steam...");
+                    _notificationManager.ShowToast("GreenLuma launched. Monitoring Steam...");
 
                     var crashInfo = await GreenLumaService.MonitorSteamAfterLaunchAsync(_config).ConfigureAwait(true);
                     if (crashInfo != null)
@@ -1191,11 +1178,12 @@ public partial class MainWindow
 
         var successBrush = Resources["Success"] as Brush ?? Brushes.Green;
 
-        if (isSamePath)
+        if (isValid && isStealthOnly)
+            _notificationManager.SetStatusIndicator(successBrush, "Ready  •  Stealth Mode (Forced)");
+        else if (isSamePath)
             _notificationManager.SetStatusIndicator(successBrush, "Ready  •  Normal Mode");
         else if (_config.NoHook)
-            _notificationManager.SetStatusIndicator(successBrush,
-                isStealthOnly ? "Ready  •  Stealth Mode (Forced)" : "Ready  •  Stealth Mode");
+            _notificationManager.SetStatusIndicator(successBrush, "Ready  •  Stealth Mode");
         else
             _notificationManager.SetStatusIndicator(successBrush, "Ready  •  Normal Mode");
     }
