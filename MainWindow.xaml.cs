@@ -288,6 +288,7 @@ public partial class MainWindow
         _profileController.SaveCurrentProfile();
 
         game.IsInProfile = true;
+        UpdateResultCount();
         _notificationManager.ShowToast($"Added {game.Name}");
 
         _ = Task.Run(async () =>
@@ -349,6 +350,7 @@ public partial class MainWindow
             if (removed > 0)
             {
                 _profileController.SaveCurrentProfile();
+                UpdateResultCount();
                 _notificationManager.ShowToast($"Removed {removed} game{(removed == 1 ? "" : "s")}");
             }
 
@@ -737,7 +739,12 @@ public partial class MainWindow
         _gameListController.RemoveGame(game);
 
         var searchResult = _searchController.SearchResults.FirstOrDefault(g => g.AppId == game.AppId);
-        if (searchResult != null) searchResult.IsInProfile = false;
+        if (searchResult != null)
+        {
+            searchResult.IconUrl = string.Empty;
+            searchResult.IsInProfile = false;
+            UpdateResultCount();
+        }
 
         _profileController.CurrentProfile?.Games.Remove(game);
         _profileController.SaveCurrentProfile();
