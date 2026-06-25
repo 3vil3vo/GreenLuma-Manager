@@ -11,33 +11,39 @@ namespace GreenLuma_Manager.Controllers;
 
 public class SearchController
 {
+    private readonly Button _btnAddAll;
     private readonly DataGrid _dgResults;
     private readonly NotificationManager _notificationManager;
     private readonly UIElement _pnlEmptyResults;
+    private readonly UIElement _pnlResultsHeader;
     private readonly UIElement _pnlSearchLoading;
-    private readonly TextBlock _txtResultCount;
     private CancellationTokenSource? _searchCts;
 
     public SearchController(
         DataGrid dgResults,
         UIElement pnlSearchLoading,
-        TextBlock txtResultCount,
         UIElement pnlEmptyResults,
+        UIElement pnlResultsHeader,
+        Button btnAddAll,
         NotificationManager notificationManager)
     {
         _dgResults = dgResults;
         _pnlSearchLoading = pnlSearchLoading;
-        _txtResultCount = txtResultCount;
         _pnlEmptyResults = pnlEmptyResults;
+        _pnlResultsHeader = pnlResultsHeader;
+        _btnAddAll = btnAddAll;
         _notificationManager = notificationManager;
 
         SearchResults = [];
         _dgResults.ItemsSource = SearchResults;
     }
 
+    public int TotalResultCount { get; private set; }
+
     public ObservableCollection<Game> SearchResults { get; }
 
     public event Action<Game>? GameSelected;
+    public event Action? ResultsLoaded;
 
     public async Task ExecuteSearchAsync(string query, CancellationToken token = default)
     {
@@ -134,24 +140,28 @@ public class SearchController
 
     public void DisplayResults(List<Game> results)
     {
+        TotalResultCount = results.Count;
         SearchResults.Clear();
         HideLoading();
+
+        _pnlResultsHeader.Visibility = Visibility.Visible;
 
         if (results.Count == 0)
         {
             _dgResults.Visibility = Visibility.Collapsed;
             _pnlEmptyResults.Visibility = Visibility.Visible;
+            _btnAddAll.Visibility = Visibility.Collapsed;
+            ResultsLoaded?.Invoke();
             return;
         }
 
-        foreach (var game in results.Take(60))
+        foreach (var game in results.Take(100))
             SearchResults.Add(game);
 
         _dgResults.Visibility = Visibility.Visible;
         _pnlEmptyResults.Visibility = Visibility.Collapsed;
-        _txtResultCount.Text = results.Count > 60
-            ? $"Showing 60 of {results.Count} results"
-            : $"{results.Count} results";
+        _btnAddAll.Visibility = Visibility.Visible;
+        ResultsLoaded?.Invoke();
     }
 
     public void CancelSearch()

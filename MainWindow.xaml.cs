@@ -31,7 +31,6 @@ public partial class MainWindow
     private readonly ProfileController _profileController;
     private readonly ObservableCollection<string> _profiles;
     private readonly SearchController _searchController;
-
     private Config? _config;
     private List<Game>? _lastAddAllGames;
     private CancellationTokenSource? _profileLoadCts;
@@ -51,7 +50,8 @@ public partial class MainWindow
         _gameListController = new GameListController(LstGames, PnlEmptyGames, _notificationManager);
 
         _searchController = new SearchController(
-            DgResults, PnlSearchLoading, TxtResultCount, PnlEmptyResults, _notificationManager);
+            DgResults, PnlSearchLoading, PnlEmptyResults,
+            PnlResultsHeader, BtnAddAll, _notificationManager);
 
         _profileController = new ProfileController(
             CmbProfile, _profiles, _gameListController, _launcher, _notificationManager);
@@ -60,6 +60,7 @@ public partial class MainWindow
             _profileController, _gameListController, _launcher, _notificationManager);
 
         _searchController.GameSelected += OnSearchResultSelected;
+        _searchController.ResultsLoaded += UpdateResultCount;
 
         FocusSearchCommand = new RelayCommand(_ => TxtSearchInput.Focus());
         GenerateApplistCommand =
@@ -223,7 +224,7 @@ public partial class MainWindow
 
     private void ResultFilter_Changed(object sender, RoutedEventArgs e)
     {
-        if (BtnHideAdded == null || TxtResultCount == null) return;
+        if (BtnHideAdded == null) return;
 
         var view = CollectionViewSource.GetDefaultView(_searchController.SearchResults);
         view.Filter = item =>
@@ -239,7 +240,17 @@ public partial class MainWindow
             return true;
         };
 
-        TxtResultCount.Text = view.Cast<object>().Count().ToString();
+        UpdateResultCount();
+        if (DgResults.Items.Count > 0) DgResults.ScrollIntoView(DgResults.Items[0]);
+    }
+
+    private void UpdateResultCount()
+    {
+        if (TxtResultCount == null) return;
+        var view = CollectionViewSource.GetDefaultView(_searchController.SearchResults);
+        view.Refresh();
+        var visible = view.Cast<object>().Count();
+        TxtResultCount.Text = $"Showing {visible} of {_searchController.TotalResultCount} results";
     }
 
     private void SearchResult_MouseDoubleClick(object sender, MouseButtonEventArgs e)
