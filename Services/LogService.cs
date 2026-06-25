@@ -30,8 +30,9 @@ public static class LogService
 
             Debug.WriteLine($"[{context}] {ex.GetType().Name}: {ex.Message}");
         }
-        catch
+        catch (Exception inner)
         {
+            Debug.WriteLine(inner);
         }
     }
 
@@ -50,8 +51,9 @@ public static class LogService
 
             Debug.WriteLine($"[{context}] WARN: {message}");
         }
-        catch
+        catch (Exception inner)
         {
+            Debug.WriteLine(inner);
         }
     }
 

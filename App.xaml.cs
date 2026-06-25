@@ -40,7 +40,7 @@ public partial class App
                 .Where(g => !string.IsNullOrWhiteSpace(g.AppId))
                 .Select(g => g.AppId));
             IconCacheService.DeleteUnusedIcons(valid);
-            _ = Task.Run(() => WarmupIconsAsync(profiles));
+            _ = WarmupIconsAsync(profiles);
             _ = SearchService.PrefetchAsync(config);
             _ = Task.Run(() => { _ = SteamService.Instance; });
         }
@@ -69,24 +69,19 @@ public partial class App
     {
         try
         {
-            using var semaphore = new SemaphoreSlim(6);
-            var tasks = new List<Task>();
-
             foreach (var profile in profiles)
             {
                 var changed = false;
-                foreach (var game in profile.Games)
-                {
-                    if (string.IsNullOrWhiteSpace(game.AppId))
-                        continue;
 
-                    var cached = IconCacheService.GetCachedIconPath(game.AppId);
-                    if (string.IsNullOrEmpty(cached))
+                await Parallel.ForEachAsync(
+                    profile.Games.Where(g => !string.IsNullOrWhiteSpace(g.AppId)),
+                    new ParallelOptions { MaxDegreeOfParallelism = 6 },
+                    async (game, _) =>
                     {
-                        await semaphore.WaitAsync();
-                        tasks.Add(Task.Run(async () =>
+                        try
                         {
-                            try
+                            var cached = IconCacheService.GetCachedIconPath(game.AppId);
+                            if (string.IsNullOrEmpty(cached))
                             {
                                 string? path = null;
                                 if (!string.IsNullOrWhiteSpace(game.IconUrl))
@@ -106,22 +101,7 @@ public partial class App
                                     changed = true;
                                 }
                             }
-                            catch (Exception ex)
-                            {
-                                LogService.LogError("App.WarmupIcon", ex);
-                            }
-                            finally
-                            {
-                                semaphore.Release();
-                            }
-                        }));
-                    }
-                    else if (!string.IsNullOrWhiteSpace(game.IconUrl) && !File.Exists(cached))
-                    {
-                        await semaphore.WaitAsync();
-                        tasks.Add(Task.Run(async () =>
-                        {
-                            try
+                            else if (!string.IsNullOrWhiteSpace(game.IconUrl) && !File.Exists(cached))
                             {
                                 var path = await IconCacheService.DownloadAndCacheIconAsync(game.AppId, game.IconUrl);
                                 if (!string.IsNullOrEmpty(path))
@@ -130,19 +110,12 @@ public partial class App
                                     changed = true;
                                 }
                             }
-                            catch (Exception ex)
-                            {
-                                LogService.LogError("App.WarmupIconRedownload", ex);
-                            }
-                            finally
-                            {
-                                semaphore.Release();
-                            }
-                        }));
-                    }
-                }
-
-                await Task.WhenAll(tasks);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogService.LogError("App.WarmupIcon", ex);
+                        }
+                    });
 
                 if (changed)
                     try
@@ -153,8 +126,6 @@ public partial class App
                     {
                         LogService.LogError("App.WarmupSave", ex);
                     }
-
-                tasks.Clear();
             }
         }
         catch (Exception ex)

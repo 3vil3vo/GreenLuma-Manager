@@ -69,7 +69,7 @@ public partial class UpdateService
 
     private static string NormalizeVersion(string version)
     {
-        var cleaned = version.ToLower().Trim().Replace("v", "");
+        var cleaned = version.ToLowerInvariant().Trim().Replace("v", "");
 
         if (string.IsNullOrEmpty(cleaned))
             return "00000.00000.00000.0000.0000";
@@ -124,15 +124,15 @@ public partial class UpdateService
 
     private static string FormatDisplayVersion(string version)
     {
-        var cleaned = version.ToLower().Replace("v", "");
+        var cleaned = version.ToLowerInvariant().Replace("v", "");
 
         if (cleaned.Contains("-rc"))
         {
             var parts = cleaned.Split(RcSeparator, StringSplitOptions.None);
-            if (parts.Length > 1) return "RC" + parts[1].ToUpper();
+            if (parts.Length > 1) return "RC" + parts[1].ToUpperInvariant();
         }
 
-        if (cleaned.StartsWith("rc")) return cleaned.ToUpper();
+        if (cleaned.StartsWith("rc")) return cleaned.ToUpperInvariant();
 
         return cleaned;
     }

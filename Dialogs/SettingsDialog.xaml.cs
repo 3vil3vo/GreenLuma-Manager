@@ -176,8 +176,9 @@ public partial class SettingsDialog
                     proc.Kill();
                     proc.WaitForExit(3000);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Debug.WriteLine(ex);
                 }
 
             Process.Start(new ProcessStartInfo

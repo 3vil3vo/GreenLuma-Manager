@@ -278,10 +278,7 @@ public class IconCacheService
             {
                 var filePath = Path.Combine(IconCacheDir, $"{appId}{ext}");
                 if (File.Exists(filePath))
-                {
                     File.Delete(filePath);
-                    break;
-                }
             }
         }
         catch (Exception ex)
@@ -321,21 +318,13 @@ public class IconCacheService
 
     private static string GetImageExtension(string url)
     {
-        try
-        {
-            var lower = url.ToLower();
-            if (lower.Contains(".ico")) return ".ico";
-            if (lower.Contains(".jpg") || lower.Contains("jpeg")) return ".jpg";
-            if (lower.Contains(".png")) return ".png";
-            if (lower.Contains(".gif")) return ".gif";
-            if (lower.Contains(".webp")) return ".webp";
-            return ".jpg";
-        }
-        catch (Exception ex)
-        {
-            LogService.LogError("IconCacheService.GetImageExtension", ex);
-            return ".jpg";
-        }
+        var lower = url.ToLowerInvariant();
+        if (lower.Contains(".ico")) return ".ico";
+        if (lower.Contains(".jpg") || lower.Contains("jpeg")) return ".jpg";
+        if (lower.Contains(".png")) return ".png";
+        if (lower.Contains(".gif")) return ".gif";
+        if (lower.Contains(".webp")) return ".webp";
+        return ".jpg";
     }
 
     private record IconCandidate(string Url, int MinSize = 0);

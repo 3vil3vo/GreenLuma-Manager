@@ -20,7 +20,6 @@ public class ProfileController
         ComboBox cmbProfile,
         ObservableCollection<string> profiles,
         GameListController gameListController,
-        GreenLumaLauncher launcher,
         NotificationManager notificationManager)
     {
         _cmbProfile = cmbProfile;

@@ -98,8 +98,9 @@ public sealed class SteamService : IDisposable
                         foreach (var (appId, token) in tokenResult.AppTokens)
                             tokens[appId] = token;
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        LogService.LogError("SteamService.GetTokens", ex);
                     }
 
                     var requests = appIds.Select(id => new SteamApps.PICSRequest
@@ -547,7 +548,7 @@ public sealed class SteamService : IDisposable
 
     private static string MapSteamTypeToDisplayType(string steamType)
     {
-        return steamType.ToLower() switch
+        return steamType.ToLowerInvariant() switch
         {
             "game" => "Game",
             "dlc" => "DLC",
