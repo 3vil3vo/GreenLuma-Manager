@@ -1517,14 +1517,8 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock
-                                Grid.Column="0"
-                                VerticalAlignment="Center"
-                                Style="{StaticResource HeaderTxt}"
-                                Text="RESULTS" />
                             <StackPanel
-                                Grid.Column="1"
-                                HorizontalAlignment="Center"
+                                Grid.Column="0"
                                 VerticalAlignment="Center"
                                 Orientation="Horizontal">
                                 <RadioButton
@@ -1549,7 +1543,7 @@
                                 <RadioButton
                                     x:Name="FilterOther"
                                     Checked="ResultFilter_Changed"
-                                    Content="Software"
+                                    Content="Other"
                                     GroupName="ResultFilter"
                                     Style="{StaticResource FilterPill}" />
                                 <Border
@@ -2298,28 +2292,29 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </ScrollViewer>
-
-                                <StackPanel
-                                    x:Name="PnlEmptyGames"
-                                    Margin="40"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                                    <Path
-                                        Width="48"
-                                        Height="48"
-                                        Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-                                        Fill="{StaticResource TextTert}"
-                                        Opacity="0.3"
-                                        Stretch="Uniform" />
-                                    <TextBlock
-                                        Margin="0,12,0,0"
-                                        FontSize="14"
-                                        Foreground="{StaticResource TextTert}"
-                                        Text="No games added yet"
-                                        TextAlignment="Center" />
-                                </StackPanel>
                             </Grid>
                         </Border>
+
+                        <StackPanel
+                            x:Name="PnlEmptyGames"
+                            Grid.Row="2"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False">
+                            <Path
+                                Width="48"
+                                Height="48"
+                                Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                                Fill="{StaticResource TextTert}"
+                                Opacity="0.3"
+                                Stretch="Uniform" />
+                            <TextBlock
+                                Margin="0,12,0,0"
+                                FontSize="14"
+                                Foreground="{StaticResource TextTert}"
+                                Text="No games added yet"
+                                TextAlignment="Center" />
+                        </StackPanel>
                     </Grid>
 
                     <StackPanel Grid.Row="3" Margin="0,20,0,0">

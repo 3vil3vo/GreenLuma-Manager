@@ -27,9 +27,7 @@ public class Config
 
     [DataMember] public bool FirstRun { get; set; } = true;
 
-    [DataMember] public string SteamApiKey { get; set; } = "1DD0450A99F573693CD031EBB160907D";
-
-    [DataMember] public bool ShowHiddenDlcs { get; set; }
+    [DataMember] public string SteamApiKey { get; set; } = string.Empty;
 
     [DataMember] public double WindowWidth { get; set; }
 

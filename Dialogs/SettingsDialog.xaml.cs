@@ -35,7 +35,6 @@ public partial class SettingsDialog
         ChkStartSteamMinimized.IsChecked = _config.StartSteamMinimized;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
-        ChkShowHiddenDlcs.IsChecked = _config.ShowHiddenDlcs;
     }
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -310,8 +309,6 @@ public partial class SettingsDialog
         _config.StartSteamMinimized = ChkStartSteamMinimized.IsChecked.GetValueOrDefault();
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
-        _config.ShowHiddenDlcs = ChkShowHiddenDlcs.IsChecked.GetValueOrDefault();
-
         ConfigService.Save(_config);
         AutostartManager.ManageAutostart(_config.ReplaceSteamAutostart, _config);
 

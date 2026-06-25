@@ -405,6 +405,34 @@
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
 
+            <Style x:Key="SettingsScrollViewer" TargetType="{x:Type ScrollViewer}">
+                <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+                <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ScrollContentPresenter Grid.Column="0" />
+                                <ScrollBar
+                                    x:Name="PART_VerticalScrollBar"
+                                    Grid.Column="1"
+                                    Margin="12,8,0,8"
+                                    Maximum="{TemplateBinding ScrollableHeight}"
+                                    Minimum="0"
+                                    Orientation="Vertical"
+                                    Value="{TemplateBinding VerticalOffset}"
+                                    ViewportSize="{TemplateBinding ViewportHeight}"
+                                    Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
         </ResourceDictionary>
     </Window.Resources>
 
@@ -491,8 +519,7 @@
                 Grid.Row="1"
                 Margin="40,0,40,40"
                 Focusable="False"
-                HorizontalScrollBarVisibility="Disabled"
-                VerticalScrollBarVisibility="Auto">
+                Style="{StaticResource SettingsScrollViewer}">
                 <ScrollViewer.Resources>
                     <ResourceDictionary>
                         <ResourceDictionary.MergedDictionaries>
@@ -692,7 +719,7 @@
                                             Margin="0,4,60,0"
                                             FontSize="13"
                                             Foreground="{StaticResource TextTertiary}"
-                                            Text="Speed up the App Search by prefetching all Steam Apps when GreenLuma Manager starts."
+                                            Text="Prefetch the full Steam app list on startup without an API key. With an API key configured, this always happens automatically."
                                             TextWrapping="Wrap" />
                                     </StackPanel>
 
@@ -706,35 +733,6 @@
                                             FontSize="13"
                                             Foreground="{StaticResource TextTertiary}"
                                             Text="Launch Steam minimized to the system tray instead of showing the main window."
-                                            TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-
-                            <Border
-                                Margin="0,0,0,20"
-                                Padding="24"
-                                Background="{StaticResource SurfaceBg}"
-                                BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="8">
-                                <StackPanel>
-                                    <TextBlock
-                                        Margin="0,0,0,20"
-                                        FontSize="12"
-                                        FontWeight="Bold"
-                                        Foreground="{StaticResource TextTertiary}"
-                                        Text="SEARCH" />
-                                    <StackPanel>
-                                        <CheckBox
-                                            x:Name="ChkShowHiddenDlcs"
-                                            Content="Show Hidden DLCs"
-                                            Style="{StaticResource ChillSwitch}" />
-                                        <TextBlock
-                                            Margin="0,4,60,0"
-                                            FontSize="13"
-                                            Foreground="{StaticResource TextTertiary}"
-                                            Text="Include DLCs that are normally hidden from the Steam store in search results."
                                             TextWrapping="Wrap" />
                                     </StackPanel>
                                 </StackPanel>
