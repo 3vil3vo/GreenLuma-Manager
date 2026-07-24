@@ -723,7 +723,7 @@
                                             TextWrapping="Wrap" />
                                     </StackPanel>
 
-                                    <StackPanel>
+                                    <StackPanel Margin="0,0,0,24">
                                         <CheckBox
                                             x:Name="ChkStartSteamMinimized"
                                             Content="Start Steam Minimized"
@@ -733,6 +733,19 @@
                                             FontSize="13"
                                             Foreground="{StaticResource TextTertiary}"
                                             Text="Launch Steam minimized to the system tray instead of showing the main window."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <CheckBox
+                                            x:Name="ChkDisableGreenLumaVersionNotice"
+                                            Content="Disable GreenLuma Version Notice"
+                                            Style="{StaticResource ChillSwitch}" />
+                                        <TextBlock
+                                            Margin="0,4,60,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="Hide the detected GreenLuma version and outdated warning from the status bar."
                                             TextWrapping="Wrap" />
                                     </StackPanel>
                                 </StackPanel>

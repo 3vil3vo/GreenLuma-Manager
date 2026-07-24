@@ -22,7 +22,7 @@ namespace GreenLuma_Manager;
 public partial class MainWindow
 {
     public const string Version = "RC2.15";
-    private const string LatestGreenLumaVersion = "1.7.8";
+    private const string LatestGreenLumaVersion = "1.8.0";
     private readonly AppListController _appListController;
     private readonly GameListController _gameListController;
     private readonly GreenLumaLauncher _launcher;
@@ -845,9 +845,14 @@ public partial class MainWindow
 
     private async void GenerateApplistButton_Click(object sender, RoutedEventArgs e)
     {
+        await GenerateAppListWithChecksAsync();
+    }
+
+    private async Task<bool> GenerateAppListWithChecksAsync()
+    {
         try
         {
-            if (_config == null) return;
+            if (_config == null) return false;
 
             if (!_launcher.ValidatePaths(_config))
             {
@@ -858,13 +863,13 @@ public partial class MainWindow
                     MessageBoxImage.Exclamation);
 
                 if (result == MessageBoxResult.Yes) SettingsButton_Click(null, null!);
-                return;
+                return false;
             }
 
             if (_profileController.CurrentProfile == null)
             {
                 _notificationManager.ShowToast("No profile selected", false);
-                return;
+                return false;
             }
 
             if (_gameListController.Games.Count == 0)
@@ -876,7 +881,7 @@ public partial class MainWindow
                     MessageBoxImage.Question);
 
                 if (clearResult != MessageBoxResult.Yes)
-                    return;
+                    return false;
             }
 
             BtnGenerateApplist.IsEnabled = false;
@@ -912,15 +917,17 @@ public partial class MainWindow
                             MessageBoxButton.OK,
                             MessageBoxImage.Warning);
                     }
+
+                    return true;
                 }
-                else
-                {
-                    _notificationManager.ShowToast("Failed to generate AppList - check paths in settings", false);
-                }
+
+                _notificationManager.ShowToast("Failed to generate AppList - check paths in settings", false);
+                return false;
             }
             catch (Exception ex)
             {
                 _notificationManager.ShowToast("Error: " + ex.Message, false);
+                return false;
             }
             finally
             {
@@ -930,6 +937,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             LogService.LogError("MainWindow.GenerateApplist", ex);
+            return false;
         }
     }
 
@@ -1028,18 +1036,12 @@ public partial class MainWindow
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Question);
 
-        switch (result)
+        return result switch
         {
-            case MessageBoxResult.Cancel:
-                return false;
-
-            case MessageBoxResult.Yes:
-                GenerateApplistButton_Click(BtnGenerateApplist, new RoutedEventArgs());
-                await Task.Delay(500);
-                break;
-        }
-
-        return true;
+            MessageBoxResult.Cancel => false,
+            MessageBoxResult.Yes => await GenerateAppListWithChecksAsync(),
+            _ => true
+        };
     }
 
     private void SettingsButton_Click(object? sender, RoutedEventArgs? e)
@@ -1137,7 +1139,7 @@ public partial class MainWindow
         }
 
         var glVersion = GreenLumaService.DetectVersion(greenLumaPath);
-        if (glVersion != null)
+        if (glVersion != null && !_config.DisableGreenLumaVersionNotice)
         {
             var isOutdated = IsGreenLumaOutdated(glVersion);
             TxtGreenLumaVersionStatus.Text = isOutdated ? $"GL v{glVersion} (outdated)" : $"GL v{glVersion}";
@@ -1190,18 +1192,7 @@ public partial class MainWindow
 
     private static bool IsGreenLumaOutdated(string detectedVersion)
     {
-        var detected = detectedVersion.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        var latest = LatestGreenLumaVersion.Split('.', StringSplitOptions.RemoveEmptyEntries);
-
-        for (var i = 0; i < Math.Max(detected.Length, latest.Length); i++)
-        {
-            var d = i < detected.Length && int.TryParse(detected[i], out var dv) ? dv : 0;
-            var l = i < latest.Length && int.TryParse(latest[i], out var lv) ? lv : 0;
-            if (d < l) return true;
-            if (d > l) return false;
-        }
-
-        return false;
+        return GreenLumaService.CompareVersions(detectedVersion, LatestGreenLumaVersion) < 0;
     }
 
     private async void CheckForUpdates()

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using GreenLuma_Manager.Models;
@@ -11,12 +12,41 @@ public partial class GreenLumaService
 {
     private const int ProcessKillTimeoutMs = 5000;
     public const int AppListLimit = 149;
+    public const string IniAppListMinVersion = "1.8.0";
+    private const string IniTemplateResourceName = "GreenLuma_Manager.Data.AppList.template.ini";
 
     [GeneratedRegex(@"[A-Za-z]:\\[^""\r\n]+?\.dll", RegexOptions.IgnoreCase)]
     private static partial Regex DllPathRegex();
 
     [GeneratedRegex(@"GreenLuma_(\d{4})_x(64|86)\.dll", RegexOptions.IgnoreCase)]
     private static partial Regex GreenLumaDllRegex();
+
+    [GeneratedRegex(@"^#(\d+)\s*=")]
+    private static partial Regex CommentedAppListLineRegex();
+
+    [GeneratedRegex(@"^NumAppIDs\s*=", RegexOptions.IgnoreCase)]
+    private static partial Regex NumAppIdsLineRegex();
+
+    public static int CompareVersions(string a, string b)
+    {
+        var partsA = a.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        var partsB = b.Split('.', StringSplitOptions.RemoveEmptyEntries);
+
+        for (var i = 0; i < Math.Max(partsA.Length, partsB.Length); i++)
+        {
+            var va = i < partsA.Length && int.TryParse(partsA[i], out var pa) ? pa : 0;
+            var vb = i < partsB.Length && int.TryParse(partsB[i], out var pb) ? pb : 0;
+            if (va != vb) return va.CompareTo(vb);
+        }
+
+        return 0;
+    }
+
+    public static bool SupportsIniAppList(string? greenLumaVersion)
+    {
+        return !string.IsNullOrWhiteSpace(greenLumaVersion) &&
+               CompareVersions(greenLumaVersion, IniAppListMinVersion) >= 0;
+    }
 
     public static (bool IsValid, bool IsStealthOnly, List<string> MissingFiles) ValidateInstallation(string path)
     {
@@ -29,7 +59,8 @@ public partial class GreenLumaService
         string? arch = null;
         try
         {
-            var dllFiles = Directory.GetFiles(path, "GreenLuma_*_x*.dll");
+            var dllFiles = Directory.GetFiles(path, "GreenLuma_*_x*.dll")
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
             foreach (var file in dllFiles)
             {
                 var match = GreenLumaDllRegex().Match(Path.GetFileName(file));
@@ -100,8 +131,52 @@ public partial class GreenLumaService
 
         var appListPath = Path.Combine(config.GreenLumaPath, "AppList");
 
-        return Directory.Exists(appListPath) &&
-               Directory.GetFiles(appListPath, "*.txt").Length > 0;
+        return IsAppListGenerated(appListPath);
+    }
+
+    public static bool IsAppListGenerated(string appListPath)
+    {
+        if (!Directory.Exists(appListPath))
+            return false;
+
+        if (Directory.GetFiles(appListPath, "*.txt").Length > 0)
+            return true;
+
+        var iniPath = Path.Combine(appListPath, "AppList.ini");
+        return File.Exists(iniPath) && ReadAppIdsFromIni(iniPath).Count > 0;
+    }
+
+    public static List<string> ReadAppIdsFromIni(string iniPath)
+    {
+        var appIds = new List<string>();
+
+        try
+        {
+            foreach (var rawLine in File.ReadLines(iniPath))
+            {
+                var line = rawLine.Trim();
+
+                if (line.Length == 0 || line[0] == '#' || line[0] == '[')
+                    continue;
+
+                if (NumAppIdsLineRegex().IsMatch(line))
+                    continue;
+
+                var equalsIndex = line.IndexOf('=');
+                if (equalsIndex < 0)
+                    continue;
+
+                var value = line[(equalsIndex + 1)..].Trim();
+                if (value.Length > 0)
+                    appIds.Add(value);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.LogError("GreenLumaService.ReadAppIdsFromIni", ex);
+        }
+
+        return appIds;
     }
 
     public static string? DetectVersion(string greenLumaPath)
@@ -111,7 +186,8 @@ public partial class GreenLumaService
 
         try
         {
-            var dllFiles = Directory.GetFiles(greenLumaPath, "GreenLuma_*_x*.dll");
+            var dllFiles = Directory.GetFiles(greenLumaPath, "GreenLuma_*_x*.dll")
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
             string? primaryDll = null;
 
             foreach (var file in dllFiles)
@@ -151,25 +227,29 @@ public partial class GreenLumaService
             var appListPath = Path.Combine(config.GreenLumaPath, "AppList");
             Directory.CreateDirectory(appListPath);
 
-            foreach (var file in Directory.GetFiles(appListPath, "*.txt"))
-                File.Delete(file);
-
             var allAppIds = new List<string>();
+            var seenAppIds = new HashSet<string>();
 
             foreach (var game in profile.Games)
             {
-                allAppIds.Add(game.AppId);
-                allAppIds.AddRange(game.Depots);
+                if (seenAppIds.Add(game.AppId)) allAppIds.Add(game.AppId);
+
+                foreach (var depotId in game.Depots)
+                    if (seenAppIds.Add(depotId))
+                        allAppIds.Add(depotId);
             }
 
             var totalCount = allAppIds.Count;
-
             var limitedAppIds = allAppIds.Take(AppListLimit).ToList();
 
-            for (var i = 0; i < limitedAppIds.Count; i++)
+            if (SupportsIniAppList(DetectVersion(config.GreenLumaPath)))
             {
-                var filePath = Path.Combine(appListPath, $"{i}.txt");
-                await File.WriteAllTextAsync(filePath, limitedAppIds[i]).ConfigureAwait(false);
+                if (!await GenerateIniAppListAsync(appListPath, limitedAppIds).ConfigureAwait(false))
+                    return -1;
+            }
+            else
+            {
+                await GenerateLegacyAppListAsync(appListPath, limitedAppIds).ConfigureAwait(false);
             }
 
             return totalCount;
@@ -179,6 +259,81 @@ public partial class GreenLumaService
             LogService.LogError("GreenLumaService.GenerateAppList", ex);
             return -1;
         }
+    }
+
+    private static async Task GenerateLegacyAppListAsync(string appListPath, List<string> appIds)
+    {
+        DeleteAllFiles(appListPath);
+
+        for (var i = 0; i < appIds.Count; i++)
+        {
+            var filePath = Path.Combine(appListPath, $"{i}.txt");
+            await File.WriteAllTextAsync(filePath, appIds[i]).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<bool> GenerateIniAppListAsync(string appListPath, List<string> appIds)
+    {
+        var templateLines = LoadIniTemplate();
+        if (templateLines == null)
+        {
+            LogService.LogError("GreenLumaService.GenerateIniAppList",
+                new InvalidOperationException("AppList.ini template resource could not be loaded"));
+            return false;
+        }
+
+        var placeholderIndices = new List<int>();
+        for (var i = 0; i < templateLines.Count; i++)
+            if (CommentedAppListLineRegex().IsMatch(templateLines[i]))
+                placeholderIndices.Add(i);
+
+        var assignCount = Math.Min(appIds.Count, placeholderIndices.Count);
+
+        for (var i = 0; i < assignCount; i++)
+        {
+            var lineIndex = placeholderIndices[i];
+            var key = CommentedAppListLineRegex().Match(templateLines[lineIndex]).Groups[1].Value;
+            templateLines[lineIndex] = $"{key} = {appIds[i]}";
+        }
+
+        for (var i = 0; i < templateLines.Count; i++)
+            if (NumAppIdsLineRegex().IsMatch(templateLines[i]))
+            {
+                templateLines[i] = $"NumAppIDs = {assignCount}";
+                break;
+            }
+
+        DeleteAllFiles(appListPath);
+
+        var iniPath = Path.Combine(appListPath, "AppList.ini");
+        await File.WriteAllLinesAsync(iniPath, templateLines).ConfigureAwait(false);
+        return true;
+    }
+
+    private static void DeleteAllFiles(string directoryPath)
+    {
+        foreach (var file in Directory.GetFiles(directoryPath))
+            try
+            {
+                File.Delete(file);
+            }
+            catch (Exception ex)
+            {
+                LogService.LogError("GreenLumaService.DeleteAppListFile", ex);
+            }
+    }
+
+    private static List<string>? LoadIniTemplate()
+    {
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(IniTemplateResourceName);
+        if (stream == null) return null;
+
+        using var reader = new StreamReader(stream);
+        var lines = new List<string>();
+        string? line;
+        while ((line = reader.ReadLine()) != null) lines.Add(line);
+
+        return lines;
     }
 
     public static async Task<bool> LaunchGreenLumaAsync(Config config)

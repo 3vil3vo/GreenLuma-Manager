@@ -38,6 +38,7 @@
 
     <ItemGroup>
         <EmbeddedResource Include="Data\steam_applist_legacy.json"/>
+        <EmbeddedResource Include="Data\AppList.template.ini"/>
     </ItemGroup>
 
     <ItemGroup>

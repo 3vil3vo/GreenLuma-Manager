@@ -15,8 +15,7 @@ public class GreenLumaLauncher
 
     public bool IsAppListGenerated(Config config)
     {
-        var appListPath = Path.Combine(config.GreenLumaPath, "AppList");
-        return Directory.Exists(appListPath) && Directory.GetFiles(appListPath, "*.txt").Length > 0;
+        return GreenLumaService.IsAppListGenerated(config);
     }
 
     public Task<bool> LaunchAsync(Config config)

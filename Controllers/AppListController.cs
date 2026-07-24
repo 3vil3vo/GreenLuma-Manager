@@ -35,10 +35,9 @@ public class AppListController
             ? Path.Combine(config.GreenLumaPath, "AppList")
             : null;
 
-        var steamHasAppList = steamAppListPath != null && Directory.Exists(steamAppListPath) &&
-                              Directory.GetFiles(steamAppListPath, "*.txt").Length > 0;
-        var greenLumaHasAppList = greenLumaAppListPath != null && Directory.Exists(greenLumaAppListPath) &&
-                                  Directory.GetFiles(greenLumaAppListPath, "*.txt").Length > 0;
+        var steamHasAppList = steamAppListPath != null && GreenLumaService.IsAppListGenerated(steamAppListPath);
+        var greenLumaHasAppList =
+            greenLumaAppListPath != null && GreenLumaService.IsAppListGenerated(greenLumaAppListPath);
 
         if (!steamHasAppList && !greenLumaHasAppList)
         {
@@ -51,16 +50,33 @@ public class AppListController
         result.HasSteamWarning = steamHasAppList;
 
         var appListPath = steamHasAppList ? steamAppListPath! : greenLumaAppListPath!;
+        result.AppIds = await ReadAppIdsAsync(appListPath).ConfigureAwait(false);
+
+        return result;
+    }
+
+    private static async Task<List<string>> ReadAppIdsAsync(string appListPath)
+    {
         var appIds = new HashSet<string>();
 
-        foreach (var file in Directory.GetFiles(appListPath, "*.txt"))
+        var txtFiles = Directory.GetFiles(appListPath, "*.txt");
+        if (txtFiles.Length > 0)
         {
-            var id = (await File.ReadAllTextAsync(file)).Trim();
-            if (!string.IsNullOrWhiteSpace(id)) appIds.Add(id);
+            foreach (var file in txtFiles)
+            {
+                var id = (await File.ReadAllTextAsync(file).ConfigureAwait(false)).Trim();
+                if (!string.IsNullOrWhiteSpace(id)) appIds.Add(id);
+            }
+
+            return [.. appIds];
         }
 
-        result.AppIds = [.. appIds];
-        return result;
+        var iniPath = Path.Combine(appListPath, "AppList.ini");
+        if (File.Exists(iniPath))
+            foreach (var id in GreenLumaService.ReadAppIdsFromIni(iniPath))
+                appIds.Add(id);
+
+        return [.. appIds];
     }
 
     public async Task ResolveAndImportAppsAsync(

@@ -33,6 +33,7 @@ public partial class SettingsDialog
         ChkReplaceSteamAutostart.IsChecked = _config.ReplaceSteamAutostart;
         ChkPrefetchAppList.IsChecked = _config.PrefetchAppList;
         ChkStartSteamMinimized.IsChecked = _config.StartSteamMinimized;
+        ChkDisableGreenLumaVersionNotice.IsChecked = _config.DisableGreenLumaVersionNotice;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
     }
@@ -308,6 +309,7 @@ public partial class SettingsDialog
         _config.ReplaceSteamAutostart = ChkReplaceSteamAutostart.IsChecked.GetValueOrDefault();
         _config.PrefetchAppList = ChkPrefetchAppList.IsChecked.GetValueOrDefault();
         _config.StartSteamMinimized = ChkStartSteamMinimized.IsChecked.GetValueOrDefault();
+        _config.DisableGreenLumaVersionNotice = ChkDisableGreenLumaVersionNotice.IsChecked.GetValueOrDefault();
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
         ConfigService.Save(_config);

@@ -4,7 +4,7 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
 launch.
 
 ![Version](https://img.shields.io/github/v/release/3vil3vo/GreenLuma-Manager?label=version)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-AGPL--3.0-green)
 ![.NET](https://img.shields.io/badge/.NET-10.0-purple)
 
 ### Need help or just want to hang out? Check out my [Discord server](https://discord.gg/9Vhtpayj4U) (.gg/9Vhtpayj4U)!
@@ -95,7 +95,7 @@ guidelines.
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+GNU Affero General Public License v3.0 - See [LICENSE](LICENSE) for details.
 
 ## Disclaimer
 

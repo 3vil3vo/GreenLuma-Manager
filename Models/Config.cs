@@ -25,6 +25,8 @@ public class Config
 
     [DataMember] public bool StartSteamMinimized { get; set; }
 
+    [DataMember] public bool DisableGreenLumaVersionNotice { get; set; }
+
     [DataMember] public bool FirstRun { get; set; } = true;
 
     [DataMember] public string SteamApiKey { get; set; } = string.Empty;
