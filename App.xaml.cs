@@ -23,6 +23,7 @@ public partial class App
                     {
                         try
                         {
+                            GreenLumaVersionPromptService.EnsureConfirmed(config);
                             GreenLumaService.LaunchGreenLumaAsync(config).GetAwaiter().GetResult();
                         }
                         catch (Exception ex)

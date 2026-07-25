@@ -48,6 +48,13 @@ public partial class GreenLumaService
                CompareVersions(greenLumaVersion, IniAppListMinVersion) >= 0;
     }
 
+    public static string? ResolveVersion(Config config, string? detectedVersion)
+    {
+        return string.IsNullOrWhiteSpace(config.GreenLumaVersionOverride)
+            ? detectedVersion
+            : config.GreenLumaVersionOverride;
+    }
+
     public static (bool IsValid, bool IsStealthOnly, List<string> MissingFiles) ValidateInstallation(string path)
     {
         var missing = new List<string>();
@@ -242,7 +249,7 @@ public partial class GreenLumaService
             var totalCount = allAppIds.Count;
             var limitedAppIds = allAppIds.Take(AppListLimit).ToList();
 
-            if (SupportsIniAppList(DetectVersion(config.GreenLumaPath)))
+            if (SupportsIniAppList(ResolveVersion(config, DetectVersion(config.GreenLumaPath))))
             {
                 if (!await GenerateIniAppListAsync(appListPath, limitedAppIds).ConfigureAwait(false))
                     return -1;

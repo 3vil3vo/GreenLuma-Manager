@@ -95,6 +95,7 @@ public partial class MainWindow
         CheckPathsOnStartup();
         CheckApiKeyOnStartup();
         CheckForUpdates();
+        CheckGreenLumaVersionOnStartup();
         UpdateStatus();
     }
 
@@ -854,6 +855,9 @@ public partial class MainWindow
         {
             if (_config == null) return false;
 
+            GreenLumaVersionPromptService.EnsureConfirmed(_config);
+            UpdateStatus();
+
             if (!_launcher.ValidatePaths(_config))
             {
                 var result = CustomMessageBox.Show(
@@ -946,6 +950,9 @@ public partial class MainWindow
         try
         {
             if (_config == null) return;
+
+            GreenLumaVersionPromptService.EnsureConfirmed(_config);
+            UpdateStatus();
 
             if (!_launcher.ValidatePaths(_config))
             {
@@ -1059,6 +1066,7 @@ public partial class MainWindow
                 SanitizeApiKey(_config);
                 SearchService.SetApiKey(_config.SteamApiKey);
                 _profileController.Config = _config;
+                GreenLumaVersionPromptService.EnsureConfirmed(_config);
                 UpdateStatus();
 
                 var nowHasGreenLumaPath = !string.IsNullOrWhiteSpace(_config.GreenLumaPath);
@@ -1141,7 +1149,8 @@ public partial class MainWindow
         var glVersion = GreenLumaService.DetectVersion(greenLumaPath);
         if (glVersion != null && !_config.DisableGreenLumaVersionNotice)
         {
-            var isOutdated = IsGreenLumaOutdated(glVersion);
+            var effectiveVersion = GreenLumaService.ResolveVersion(_config, glVersion) ?? glVersion;
+            var isOutdated = IsGreenLumaOutdated(effectiveVersion);
             TxtGreenLumaVersionStatus.Text = isOutdated ? $"GL v{glVersion} (outdated)" : $"GL v{glVersion}";
             TxtGreenLumaVersionStatus.Foreground = isOutdated
                 ? Resources["Warning"] as Brush ?? Brushes.Orange
@@ -1288,6 +1297,15 @@ public partial class MainWindow
                 MessageBoxImage.Asterisk);
 
             if (result == MessageBoxResult.OK) SettingsButton_Click(null, null!);
+        }), DispatcherPriority.Loaded);
+    }
+
+    private void CheckGreenLumaVersionOnStartup()
+    {
+        Dispatcher.BeginInvoke((Action)(() =>
+        {
+            GreenLumaVersionPromptService.EnsureConfirmed(_config);
+            UpdateStatus();
         }), DispatcherPriority.Loaded);
     }
 

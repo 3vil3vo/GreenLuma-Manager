@@ -36,6 +36,14 @@ public partial class SettingsDialog
         ChkDisableGreenLumaVersionNotice.IsChecked = _config.DisableGreenLumaVersionNotice;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
+        UpdateGreenLumaVersionOverrideText();
+    }
+
+    private void UpdateGreenLumaVersionOverrideText()
+    {
+        TxtGreenLumaVersionOverride.Text = string.IsNullOrWhiteSpace(_config.GreenLumaVersionOverride)
+            ? "Change which GreenLuma version's behavior is used for AppList generation."
+            : $"Currently set to {_config.GreenLumaVersionOverride}. Change which GreenLuma version's behavior is used for AppList generation.";
     }
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -131,6 +139,19 @@ public partial class SettingsDialog
         CustomMessageBox.Show("All data has been wiped. The application will now close.", "Complete",
             icon: MessageBoxImage.Asterisk);
         Application.Current.Shutdown();
+    }
+
+    private void ChangeGreenLumaVersion_Click(object sender, RoutedEventArgs e)
+    {
+        var detected = GreenLumaService.DetectVersion(_config.GreenLumaPath) ?? _config.GreenLumaVersionOverride;
+        var chosen = GreenLumaVersionDialog.Show(
+            string.IsNullOrWhiteSpace(detected) ? "unknown" : detected);
+
+        _config.GreenLumaVersionOverride = chosen;
+        _config.GreenLumaVersionPromptShown = true;
+        ConfigService.Save(_config);
+
+        UpdateGreenLumaVersionOverrideText();
     }
 
     private void OpenAppData_Click(object sender, RoutedEventArgs e)
