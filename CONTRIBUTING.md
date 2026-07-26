@@ -12,12 +12,12 @@ Thank you for your interest in contributing to GreenLuma Manager!
 
 2. **Open in Visual Studio**
     - Open `GreenLuma-Manager.slnx` in Visual Studio 2022 or later
-    - Ensure you have .NET 10.0 SDK installed
+    - Make sure you have the .NET 10.0 SDK installed
 
 3. **Restore NuGet packages**
     - Right-click the solution in Solution Explorer
     - Select "Restore NuGet Packages"
-    - Package: Newtonsoft.Json
+    - Packages used: Newtonsoft.Json, SteamKit2
 
 4. **Build and run**
     - Press F5 to build and run in debug mode
@@ -25,26 +25,44 @@ Thank you for your interest in contributing to GreenLuma Manager!
 
 ## Project Structure
 
-- `Services/` - Core application services
-    - `ConfigService.cs` - Configuration management and RC3 migration
-    - `ProfileService.cs` - Profile management and RC3 migration
-    - `SearchService.cs` - Steam game search and icon fetching
-    - `GreenLumaService.cs` - AppList generation and GreenLuma launch
-    - `UpdateService.cs` - Auto-update functionality
-    - `IconCacheService.cs` - Icon caching and management
+- `Controllers/` - Thin classes that connect the UI to the services below
+    - `AppListController.cs` - Generating and importing AppLists
+    - `GameListController.cs` - Filtering and displaying the current profile's game list
+    - `GreenLumaLauncher.cs` - Wraps GreenLuma launch and path checks for the UI
+    - `NotificationManager.cs` - Toasts, status indicator, and loading animations
+    - `ProfileController.cs` - Loading, saving, and switching profiles
+    - `SearchController.cs` - Running searches and showing results
+- `Services/` - Core application logic
+    - `ConfigService.cs` - Loading, saving, and migrating configuration
+    - `ProfileService.cs` - Reading and writing profile files
+    - `SearchService.cs` - Matching games against the bundled and Steam API app lists
+    - `GreenLumaService.cs` - AppList generation, DLLInjector.ini updates, and launching GreenLuma
+    - `GreenLumaVersionPromptService.cs` - The one-time prompt for a mislabeled GreenLuma version
+    - `DepotService.cs` and `SteamService.cs` - Resolving depot and DLC info through SteamKit2
+    - `UpdateService.cs` - Checking for and applying app updates
+    - `IconCacheService.cs` - Downloading and caching game icons
+    - `PluginService.cs` - Loading, enabling, and removing plugins
+    - `LogService.cs` - Error logging
+    - `HttpClientProvider.cs` - Shared HttpClient instance
 - `Models/` - Data models
-    - `Config.cs` - Application configuration model
-    - `Profile.cs` - Game profile model
-    - `Game.cs` - Game data with INotifyPropertyChanged
-    - `UpdateInfo.cs` - Update information model
+    - `Config.cs` - Application configuration
+    - `Profile.cs` - A saved game list
+    - `Game.cs` - A single game or DLC entry, with `INotifyPropertyChanged`
+    - `PluginInfo.cs` and `PluginManifest.cs` - Plugin metadata
+    - `UpdateInfo.cs` - Update check result
+    - `AppListProgressReport.cs` - Progress reporting for long-running AppList operations
+- `Plugins/` - `IPlugin.cs`, the interface external plugins implement
 - `Dialogs/` - WPF dialog windows
     - `SettingsDialog.xaml` - Settings UI
     - `CreateProfileDialog.xaml` - Profile creation UI
-    - `CustomMessageBox.xaml` - Custom message boxes
+    - `CustomMessageBox.xaml` - Custom message boxes used across the app
+    - `GreenLumaVersionDialog.xaml` - The one-time GreenLuma version prompt
+    - `PluginsDialog.xaml` - Import, enable, disable, and remove plugins
 - `Utilities/` - Helper classes
     - `PathDetector.cs` - Auto-detection of Steam/GreenLuma paths
     - `IconUrlConverter.cs` - WPF value converter for icons
     - `AutostartManager.cs` - Windows startup integration
+    - `RelayCommand.cs` - Simple `ICommand` implementation for keyboard shortcuts
 - `MainWindow.xaml` - Main application window
 
 ## Code Style
@@ -54,20 +72,23 @@ Thank you for your interest in contributing to GreenLuma Manager!
 - Implement `INotifyPropertyChanged` for data-bound properties
 - Keep methods focused and single-purpose
 - Use meaningful variable and method names
-- Add XML documentation comments for public APIs
+- Do not add comments that just restate what the code does. Only comment on something that is not obvious from
+  the code itself
+- Do not use em dashes in code, comments, or documentation
+- Match the existing ReSharper formatting style (see the rest of the codebase for examples)
 
 ## WPF Best Practices
 
 - Use MVVM patterns where appropriate
-- Leverage data binding over code-behind manipulation
-- Use `SynchronizationContext` for UI thread marshaling
+- Prefer data binding over code-behind manipulation
+- Use `Dispatcher` for UI thread marshaling
 - Implement proper resource cleanup in `Dispose` methods
 - Use value converters for data transformation in bindings
 
 ## Pull Request Process
 
 1. Create a new branch for your feature
-2. Make your changes following code style guidelines
+2. Make your changes following the code style guidelines above
 3. Test thoroughly in both Debug and Release builds
 4. Commit with clear, descriptive messages
 5. Push to your fork
@@ -79,27 +100,29 @@ Before submitting:
 
 - Build in both Debug and Release configurations
 - Test all modified features
-- Verify no binding errors in debug output
-- Test with both fresh install and RC3 migration scenarios
+- Verify no binding errors in the debug output
+- Test with both a fresh install and an existing config file
 - Check for memory leaks with long-running operations
-- Verify icon loading works correctly
+- Verify icon loading and search still work correctly
+- If you touch GreenLuma launching or AppList generation, test with both stealth mode on and off, and with a
+  GreenLuma version below 1.8.0 and one at 1.8.0 or above
 
 ## Reporting Bugs
 
 Use the GitHub Issues tab and include:
 
-- Clear description of the bug
+- A clear description of the bug
 - Steps to reproduce
 - Expected vs actual behavior
 - Screenshots if applicable
 - Your Windows version
-- Application version
+- The application version
 
 ## Feature Requests
 
 Open an issue with:
 
-- Clear description of the feature
+- A clear description of the feature
 - Why it would be useful
 - Any implementation ideas
 - Potential impact on existing features

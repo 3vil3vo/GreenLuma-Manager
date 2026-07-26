@@ -1,7 +1,6 @@
 # GreenLuma Manager
 
-A modern desktop app for managing your GreenLuma AppList. No more entering app IDs one by one - just search, click, and
-launch.
+A modern desktop app for managing your GreenLuma AppList. No more entering app IDs one by one - just search, click, and launch.
 
 ![Version](https://img.shields.io/github/v/release/3vil3vo/GreenLuma-Manager?label=version)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-green)
@@ -11,12 +10,15 @@ launch.
 
 ## Features
 
-- **Smart Search** - Find any Steam game or DLC instantly with real-time results from Steam's API
+- **Smart Search** - Find any Steam game or DLC by name or App ID. Add a Steam API key in Settings for the fullest,
+  most up to date results
 - **Profile Management** - Keep different game lists organized with multiple profiles
 - **Auto-Detection** - Automatically finds your Steam and GreenLuma folders
-- **One-Click Launch** - Generate your AppList and fire up GreenLuma without the hassle
-- **Modern UI** - A clean WPF interface built with MaterialDesign
-- **Stealth Mode** - Configure GreenLuma's injection settings for discrete operation
+- **One-Click Launch** - Generate your AppList and start GreenLuma without the hassle
+- **AppList.ini Support** - Uses the newer AppList.ini format on GreenLuma 1.8.0 and up, and falls back to the
+  classic per-file format on older versions
+- **Plugin Support** - Import, enable, disable, and remove community plugins from the Plugins menu
+- **Stealth Mode** - Configure GreenLuma's injection settings for discreet operation
 - **Auto-Updates** - Keeps you up to date with the latest features and fixes
 - **Auto-Start** - Option to launch with Windows and replace Steam startup
 
@@ -58,12 +60,15 @@ launch.
 
 1. **First Time Setup**
     - On first launch, the app auto-detects Steam and GreenLuma paths
-    - If migrating from RC3, your settings and profiles are automatically imported
+    - Older config files are migrated automatically
     - Adjust settings in Settings (⚙️) if needed
+    - If GreenLuma reports version 1.7.9, you will see a one-time prompt asking whether it should be treated as
+      1.7.9 or 1.8.0. This only happens once, and can be changed later in Settings if needed
 
 2. **Finding Games**
-    - Type a game name or AppID into the search box
-    - Results appear instantly from Steam's database with icons
+    - Type a game name or App ID into the search box
+    - Add a Steam API key in Settings to get the full, current Steam catalog. Without a key, search only uses the
+      list bundled with the app
     - Click the + button to add games to your current profile
 
 3. **Managing Profiles**
@@ -74,15 +79,19 @@ launch.
 
 4. **Launching GreenLuma**
     - Click "Generate AppList" to write files to your GreenLuma folder
-    - Hit "Launch GreenLuma" - the app will close Steam and start GreenLuma
-    - Enable stealth mode in settings for discrete injection
+    - Click "Launch GreenLuma" and the app will close Steam and start GreenLuma
+    - Enable stealth mode in settings for discreet injection
+
+5. **Managing Plugins** (optional)
+    - Open the Plugins menu to import a plugin file
+    - Enable, disable, or remove plugins from the same menu
 
 ## Requirements
 
 - Windows 10/11
 - .NET 10.0 or higher
 - Steam installed
-- GreenLuma 2025/6 installed
+- GreenLuma installed
 
 ## Special Thanks
 
@@ -99,7 +108,8 @@ GNU Affero General Public License v3.0 - See [LICENSE](LICENSE) for details.
 
 ## Disclaimer
 
-This is an educational project. Use it responsibly and at your own risk. We're not responsible if something goes wrong.
+This is an educational project. Use it responsibly and at your own risk. We are not responsible if something
+goes wrong.
 
 ## Author
 
