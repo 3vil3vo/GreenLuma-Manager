@@ -1148,6 +1148,9 @@ public partial class MainWindow
         }
 
         var glVersion = GreenLumaService.DetectVersion(greenLumaPath);
+        if (GreenLumaService.ClearStaleVersionOverride(_config, glVersion))
+            ConfigService.Save(_config);
+
         if (glVersion != null && !_config.DisableGreenLumaVersionNotice)
         {
             var effectiveVersion = GreenLumaService.ResolveVersion(_config, glVersion) ?? glVersion;

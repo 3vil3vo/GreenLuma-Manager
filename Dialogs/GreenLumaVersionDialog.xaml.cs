@@ -2,13 +2,14 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using GreenLuma_Manager.Services;
 
 namespace GreenLuma_Manager.Dialogs;
 
 public partial class GreenLumaVersionDialog
 {
-    public const string LegacyVersion = "1.7.9";
-    public const string CurrentVersion = "1.8.0";
+    public const string LegacyVersion = GreenLumaService.LegacyVersion;
+    public const string CurrentVersion = GreenLumaService.IniAppListMinVersion;
 
     private bool _choiceMade;
 

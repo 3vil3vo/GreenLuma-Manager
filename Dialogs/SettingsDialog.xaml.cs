@@ -51,8 +51,10 @@ public partial class SettingsDialog
     private void UpdateGreenLumaVersionOverrideText()
     {
         var detected = GreenLumaService.DetectVersion(_config.GreenLumaPath);
-        var isOverridable = string.Equals(detected, GreenLumaVersionDialog.LegacyVersion, StringComparison.Ordinal) ||
-                             string.Equals(detected, GreenLumaVersionDialog.CurrentVersion, StringComparison.Ordinal);
+        var isOverridable = GreenLumaService.CanOverrideVersion(detected);
+
+        if (GreenLumaService.ClearStaleVersionOverride(_config, detected))
+            ConfigService.Save(_config);
 
         BtnChangeGreenLumaVersion.IsEnabled = isOverridable;
 

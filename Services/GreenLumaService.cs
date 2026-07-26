@@ -13,6 +13,7 @@ public partial class GreenLumaService
     private const int ProcessKillTimeoutMs = 5000;
     public const int AppListLimit = 149;
     public const string IniAppListMinVersion = "1.8.0";
+    public const string LegacyVersion = "1.7.9";
     private const string IniTemplateResourceName = "GreenLuma_Manager.Data.AppList.template.ini";
 
     [GeneratedRegex(@"[A-Za-z]:\\[^""\r\n]+?\.dll", RegexOptions.IgnoreCase)]
@@ -48,11 +49,27 @@ public partial class GreenLumaService
                CompareVersions(greenLumaVersion, IniAppListMinVersion) >= 0;
     }
 
+    public static bool CanOverrideVersion(string? detectedVersion)
+    {
+        return string.Equals(detectedVersion, LegacyVersion, StringComparison.Ordinal) ||
+               string.Equals(detectedVersion, IniAppListMinVersion, StringComparison.Ordinal);
+    }
+
     public static string? ResolveVersion(Config config, string? detectedVersion)
     {
-        return string.IsNullOrWhiteSpace(config.GreenLumaVersionOverride)
-            ? detectedVersion
-            : config.GreenLumaVersionOverride;
+        if (string.IsNullOrWhiteSpace(config.GreenLumaVersionOverride))
+            return detectedVersion;
+
+        return CanOverrideVersion(detectedVersion) ? config.GreenLumaVersionOverride : detectedVersion;
+    }
+
+    public static bool ClearStaleVersionOverride(Config config, string? detectedVersion)
+    {
+        if (string.IsNullOrWhiteSpace(config.GreenLumaVersionOverride) || CanOverrideVersion(detectedVersion))
+            return false;
+
+        config.GreenLumaVersionOverride = string.Empty;
+        return true;
     }
 
     public static bool RequiresNoQuestionFile(string? greenLumaVersion)

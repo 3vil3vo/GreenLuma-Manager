@@ -5,8 +5,6 @@ namespace GreenLuma_Manager.Services;
 
 public static class GreenLumaVersionPromptService
 {
-    private const string TriggerVersion = GreenLumaVersionDialog.LegacyVersion;
-
     public static void EnsureConfirmed(Config? config)
     {
         if (config == null || config.GreenLumaVersionPromptShown)
@@ -17,7 +15,7 @@ public static class GreenLumaVersionPromptService
             return;
 
         var detected = GreenLumaService.DetectVersion(greenLumaPath);
-        if (!string.Equals(detected, TriggerVersion, StringComparison.Ordinal))
+        if (!string.Equals(detected, GreenLumaService.LegacyVersion, StringComparison.Ordinal))
             return;
 
         var chosen = GreenLumaVersionDialog.Show(detected);
