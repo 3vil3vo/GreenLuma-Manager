@@ -113,7 +113,7 @@ public class SearchController
             }
             catch (Exception ex)
             {
-                LogService.LogError("SearchController.FetchIcons", ex);
+                Logger.Error(ex, "SearchController.FetchIcons");
             }
             finally
             {

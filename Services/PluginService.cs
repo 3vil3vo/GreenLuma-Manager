@@ -38,7 +38,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.Initialize", ex);
+            Logger.Error(ex, "PluginService.Initialize");
         }
     }
 
@@ -57,7 +57,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.LoadPluginInfos", ex);
+            Logger.Error(ex, "PluginService.LoadPluginInfos");
             return [];
         }
     }
@@ -71,7 +71,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.SavePluginInfos", ex);
+            Logger.Error(ex, "PluginService.SavePluginInfos");
         }
     }
 
@@ -83,7 +83,7 @@ public class PluginService
                 var pluginPath = Path.Combine(PluginsDir, pluginInfo.FileName);
                 if (!File.Exists(pluginPath))
                 {
-                    LogService.LogWarning("PluginService", $"Plugin file not found: {pluginInfo.FileName}");
+                    Logger.Warn($"PluginService: Plugin file not found: {pluginInfo.FileName}");
                     continue;
                 }
 
@@ -104,7 +104,7 @@ public class PluginService
             }
             catch (Exception ex)
             {
-                LogService.LogError("PluginService.LoadPlugin", ex);
+                Logger.Error(ex, "PluginService.LoadPlugin");
             }
     }
 
@@ -117,7 +117,7 @@ public class PluginService
             }
             catch (Exception ex)
             {
-                LogService.LogError("PluginService.OnStartup", ex);
+                Logger.Error(ex, "PluginService.OnStartup");
             }
     }
 
@@ -131,7 +131,7 @@ public class PluginService
             }
             catch (Exception ex)
             {
-                LogService.LogError("PluginService.OnShutdown", ex);
+                Logger.Error(ex, "PluginService.OnShutdown");
             }
 
         LoadedPlugins.Clear();
@@ -209,7 +209,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.ExtractManifest", ex);
+            Logger.Error(ex, "PluginService.ExtractManifest");
             return null;
         }
         finally
@@ -234,7 +234,7 @@ public class PluginService
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("PluginService.RemovePlugin.Shutdown", ex);
+                    Logger.Error(ex, "PluginService.RemovePlugin.Shutdown");
                 }
 
                 LoadedPlugins.Remove(loaded);
@@ -253,13 +253,13 @@ public class PluginService
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("PluginService.RemovePlugin.Delete", ex);
+                    Logger.Error(ex, "PluginService.RemovePlugin.Delete");
                     MarkForDeletion(pluginPath);
                 }
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.RemovePlugin", ex);
+            Logger.Error(ex, "PluginService.RemovePlugin");
         }
     }
 
@@ -273,7 +273,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.MarkForDeletion", ex);
+            Logger.Error(ex, "PluginService.MarkForDeletion");
         }
     }
 
@@ -287,7 +287,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.LoadPendingDeletes", ex);
+            Logger.Error(ex, "PluginService.LoadPendingDeletes");
             return new List<string>();
         }
     }
@@ -301,7 +301,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.SavePendingDeletes", ex);
+            Logger.Error(ex, "PluginService.SavePendingDeletes");
         }
     }
 
@@ -321,7 +321,7 @@ public class PluginService
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("PluginService.CleanupDelete", ex);
+                    Logger.Error(ex, "PluginService.CleanupDelete");
                     remaining.Add(path);
                 }
 
@@ -332,7 +332,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.CleanupPendingDeletes", ex);
+            Logger.Error(ex, "PluginService.CleanupPendingDeletes");
         }
     }
 
@@ -358,7 +358,7 @@ public class PluginService
                     }
                     catch (Exception ex)
                     {
-                        LogService.LogError("PluginService.TogglePlugin.Shutdown", ex);
+                        Logger.Error(ex, "PluginService.TogglePlugin.Shutdown");
                     }
 
                     LoadedPlugins.Remove(loaded);
@@ -367,7 +367,7 @@ public class PluginService
         }
         catch (Exception ex)
         {
-            LogService.LogError("PluginService.TogglePlugin", ex);
+            Logger.Error(ex, "PluginService.TogglePlugin");
         }
     }
 

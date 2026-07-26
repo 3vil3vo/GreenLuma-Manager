@@ -26,7 +26,7 @@ public class ProfileService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.LoadAll", ex);
+            Logger.Error(ex, "ProfileService.LoadAll");
         }
 
         return profiles;
@@ -55,7 +55,7 @@ public class ProfileService
             }
             catch (Exception ex)
             {
-                LogService.LogError("ProfileService.LoadFromDir", ex);
+                Logger.Error(ex, "ProfileService.LoadFromDir");
             }
     }
 
@@ -72,7 +72,7 @@ public class ProfileService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.Load", ex);
+            Logger.Error(ex, "ProfileService.Load");
             return null;
         }
     }
@@ -88,7 +88,7 @@ public class ProfileService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.Save", ex);
+            Logger.Error(ex, "ProfileService.Save");
         }
     }
 
@@ -104,7 +104,7 @@ public class ProfileService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.Delete", ex);
+            Logger.Error(ex, "ProfileService.Delete");
         }
     }
 
@@ -117,7 +117,7 @@ public class ProfileService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.Export", ex);
+            Logger.Error(ex, "ProfileService.Export");
         }
     }
 
@@ -130,7 +130,7 @@ public class ProfileService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.Import", ex);
+            Logger.Error(ex, "ProfileService.Import");
             return null;
         }
     }
@@ -149,7 +149,7 @@ public class ProfileService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.DeserializeProfile", ex);
+            Logger.Error(ex, "ProfileService.DeserializeProfile");
             return null;
         }
     }
@@ -195,12 +195,12 @@ public class ProfileService
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("ProfileService.ImportGlrFile", ex);
+                    Logger.Error(ex, "ProfileService.ImportGlrFile");
                 }
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.TryImportFromGlrManager", ex);
+            Logger.Error(ex, "ProfileService.TryImportFromGlrManager");
         }
     }
 
@@ -247,7 +247,7 @@ public class ProfileService
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("ProfileService.MigrateFile", ex);
+                    Logger.Error(ex, "ProfileService.MigrateFile");
                 }
 
             if (anyMigrated)
@@ -255,7 +255,7 @@ public class ProfileService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ProfileService.TryMigrateProfiles", ex);
+            Logger.Error(ex, "ProfileService.TryMigrateProfiles");
         }
     }
 }

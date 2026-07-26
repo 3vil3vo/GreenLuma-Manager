@@ -95,6 +95,7 @@ public partial class MainWindow
         CheckPathsOnStartup();
         CheckApiKeyOnStartup();
         CheckForUpdates();
+        CheckForGreenLumaUpdates();
         CheckGreenLumaVersionOnStartup();
         UpdateStatus();
     }
@@ -313,7 +314,7 @@ public partial class MainWindow
             }
             catch (Exception ex)
             {
-                LogService.LogError("MainWindow.OnSearchResultSelected.Background", ex);
+                Logger.Error(ex, "MainWindow.OnSearchResultSelected.Background");
             }
         });
     }
@@ -473,7 +474,7 @@ public partial class MainWindow
         {
             _searchController.HideLoading();
             _notificationManager.ShowToast("Failed to look up ID: " + ex.Message, false);
-            LogService.LogError("MainWindow.TryAddByAppId", ex);
+            Logger.Error(ex, "MainWindow.TryAddByAppId");
         }
     }
 
@@ -596,7 +597,7 @@ public partial class MainWindow
                     }
                     catch (Exception ex)
                     {
-                        LogService.LogError("MainWindow.ProfileLoadIcon", ex);
+                        Logger.Error(ex, "MainWindow.ProfileLoadIcon");
                     }
                 });
         }, token);
@@ -827,7 +828,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             HideAppListProgress();
-            LogService.LogError("MainWindow.LoadAppList", ex);
+            Logger.Error(ex, "MainWindow.LoadAppList");
         }
     }
 
@@ -940,7 +941,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            LogService.LogError("MainWindow.GenerateApplist", ex);
+            Logger.Error(ex, "MainWindow.GenerateApplist");
             return false;
         }
     }
@@ -1028,7 +1029,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            LogService.LogError("MainWindow.LaunchGreenluma", ex);
+            Logger.Error(ex, "MainWindow.LaunchGreenluma");
         }
     }
 
@@ -1077,7 +1078,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            LogService.LogError("MainWindow.SettingsButton", ex);
+            Logger.Error(ex, "MainWindow.SettingsButton");
         }
     }
 
@@ -1216,7 +1217,28 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            LogService.LogError("MainWindow.CheckForUpdates", ex);
+            Logger.Error(ex, "MainWindow.CheckForUpdates");
+        }
+    }
+
+    private async void CheckForGreenLumaUpdates()
+    {
+        try
+        {
+            if (_config is not { CheckGreenLumaUpdates: true }) return;
+
+            var versionInfo = await GreenLumaUpdateService.CheckForGreenLumaUpdatesAsync(_config).ConfigureAwait(false);
+            if (versionInfo is not { CheckSucceeded: true, UpdateAvailable: true }) return;
+
+            var installed = versionInfo.InstalledVersion?.ToString() ?? "unknown";
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+                _notificationManager.ShowToast(
+                    $"GreenLuma {versionInfo.LatestSemanticVersion} is available on the forum (installed: {installed}).",
+                    false));
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "MainWindow.CheckForGreenLumaUpdates");
         }
     }
 
@@ -1357,7 +1379,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            LogService.LogError("MainWindow.PluginButton", ex);
+            Logger.Error(ex, "MainWindow.PluginButton");
         }
     }
 

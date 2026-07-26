@@ -19,6 +19,8 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
   classic per-file format on older versions
 - **Plugin Support** - Import, enable, disable, and remove community plugins from the Plugins menu
 - **Stealth Mode** - Configure GreenLuma's injection settings for discreet operation
+- **Install / Update GreenLuma** - Point the app at a GreenLuma zip file and it extracts and deploys the right files for Normal or Stealth mode, for a fresh install or an existing one
+- **GreenLuma Update Check** (optional) - Checks the GreenLuma forum thread for a newer release than what's installed
 - **Auto-Updates** - Keeps you up to date with the latest features and fixes
 - **Auto-Start** - Option to launch with Windows and replace Steam startup
 
@@ -65,24 +67,30 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
     - If GreenLuma reports version 1.7.9, you will see a one-time prompt asking whether it should be treated as
       1.7.9 or 1.8.0. This only happens once, and can be changed later in Settings if needed
 
-2. **Finding Games**
+2. **Installing or Updating GreenLuma** (optional)
+    - In Settings, Advanced tab, browse for a GreenLuma zip file
+    - Pick Normal or Stealth mode and click "Install / Update"
+    - Works for a fresh install or refreshing an existing one, using the GreenLuma Directory set on the General tab
+    - Turn on "Check GreenLuma Forum for Updates" in Settings to get notified when a newer release is posted
+
+3. **Finding Games**
     - Type a game name or App ID into the search box
     - Add a Steam API key in Settings to get the full, current Steam catalog. Without a key, search only uses the
       list bundled with the app
     - Click the + button to add games to your current profile
 
-3. **Managing Profiles**
+4. **Managing Profiles**
     - Select a profile from the dropdown menu
     - Create new profiles with the + button
     - Add games with +, remove with the delete button
     - Each profile is saved automatically
 
-4. **Launching GreenLuma**
+5. **Launching GreenLuma**
     - Click "Generate AppList" to write files to your GreenLuma folder
     - Click "Launch GreenLuma" and the app will close Steam and start GreenLuma
     - Enable stealth mode in settings for discreet injection
 
-5. **Managing Plugins** (optional)
+6. **Managing Plugins** (optional)
     - Open the Plugins menu to import a plugin file
     - Enable, disable, or remove plugins from the same menu
 

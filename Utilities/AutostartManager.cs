@@ -28,7 +28,7 @@ public class AutostartManager
         }
         catch (Exception ex)
         {
-            LogService.LogError("AutostartManager.ManageAutostart", ex);
+            Logger.Error(ex, "AutostartManager.ManageAutostart");
         }
     }
 
@@ -64,7 +64,7 @@ public class AutostartManager
         }
         catch (Exception ex)
         {
-            LogService.LogError("AutostartManager.CleanupVbs", ex);
+            Logger.Error(ex, "AutostartManager.CleanupVbs");
         }
     }
 
@@ -79,7 +79,7 @@ public class AutostartManager
         }
         catch (Exception ex)
         {
-            LogService.LogError("AutostartManager.CleanupAll", ex);
+            Logger.Error(ex, "AutostartManager.CleanupAll");
         }
     }
 
@@ -104,12 +104,12 @@ public class AutostartManager
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("AutostartManager.CleanupVbsFile", ex);
+                    Logger.Error(ex, "AutostartManager.CleanupVbsFile");
                 }
         }
         catch (Exception ex)
         {
-            LogService.LogError("AutostartManager.CleanupAllVbs", ex);
+            Logger.Error(ex, "AutostartManager.CleanupAllVbs");
         }
     }
 
@@ -122,7 +122,7 @@ public class AutostartManager
         }
         catch (Exception ex)
         {
-            LogService.LogError("AutostartManager.RemoveAutostart", ex);
+            Logger.Error(ex, "AutostartManager.RemoveAutostart");
         }
     }
 
@@ -135,7 +135,7 @@ public class AutostartManager
         }
         catch (Exception ex)
         {
-            LogService.LogError("AutostartManager.RemoveMonitor", ex);
+            Logger.Error(ex, "AutostartManager.RemoveMonitor");
         }
     }
 
@@ -147,7 +147,7 @@ public class AutostartManager
         }
         catch (Exception ex)
         {
-            LogService.LogError("AutostartManager.DeleteBackupKey", ex);
+            Logger.Error(ex, "AutostartManager.DeleteBackupKey");
         }
     }
 }

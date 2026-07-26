@@ -195,7 +195,7 @@ public class AppListController
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("AppListController.ResolveImport", ex);
+                    Logger.Error(ex, "AppListController.ResolveImport");
                 }
                 finally
                 {

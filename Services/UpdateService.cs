@@ -32,7 +32,7 @@ public partial class UpdateService
         }
         catch (Exception ex)
         {
-            LogService.LogError("UpdateService.CheckForUpdates", ex);
+            Logger.Error(ex, "UpdateService.CheckForUpdates");
             return null;
         }
     }
@@ -143,8 +143,9 @@ public partial class UpdateService
         {
             if (!IsValidDownloadUrl(downloadUrl))
             {
-                LogService.LogError("UpdateService.PerformAutoUpdate",
-                    new InvalidOperationException($"Blocked untrusted download URL: {downloadUrl}"));
+                Logger.Error(
+                    new InvalidOperationException($"Blocked untrusted download URL: {downloadUrl}"),
+                    "UpdateService.PerformAutoUpdate");
                 return false;
             }
 
@@ -154,8 +155,9 @@ public partial class UpdateService
             if (!IsValidPeFile(tempExePath))
             {
                 File.Delete(tempExePath);
-                LogService.LogError("UpdateService.PerformAutoUpdate",
-                    new InvalidOperationException("Downloaded file is not a valid PE executable"));
+                Logger.Error(
+                    new InvalidOperationException("Downloaded file is not a valid PE executable"),
+                    "UpdateService.PerformAutoUpdate");
                 return false;
             }
 
@@ -165,7 +167,7 @@ public partial class UpdateService
         }
         catch (Exception ex)
         {
-            LogService.LogError("UpdateService.PerformAutoUpdate", ex);
+            Logger.Error(ex, "UpdateService.PerformAutoUpdate");
             return false;
         }
     }

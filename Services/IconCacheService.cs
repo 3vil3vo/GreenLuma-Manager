@@ -34,7 +34,7 @@ public class IconCacheService
         }
         catch (Exception ex)
         {
-            LogService.LogError("IconCacheService.DownloadAndCache", ex);
+            Logger.Error(ex, "IconCacheService.DownloadAndCache");
         }
 
         return null;
@@ -165,7 +165,7 @@ public class IconCacheService
             }
             catch (Exception ex)
             {
-                LogService.LogError("IconCacheService.CacheCandidate", ex);
+                Logger.Error(ex, "IconCacheService.CacheCandidate");
             }
 
         if (isDlc && !string.IsNullOrEmpty(details.ParentAppId) && uint.TryParse(details.ParentAppId, out var parentId))
@@ -187,7 +187,7 @@ public class IconCacheService
             }
             catch (Exception ex)
             {
-                LogService.LogError("IconCacheService.CacheParent", ex);
+                Logger.Error(ex, "IconCacheService.CacheParent");
             }
 
         return null;
@@ -205,7 +205,7 @@ public class IconCacheService
         }
         catch (Exception ex)
         {
-            LogService.LogError("IconCacheService.IsValidImageSize", ex);
+            Logger.Error(ex, "IconCacheService.IsValidImageSize");
             return false;
         }
     }
@@ -226,7 +226,7 @@ public class IconCacheService
             }
             catch (Exception ex)
             {
-                LogService.LogError("IconCacheService.TryDownload", ex);
+                Logger.Error(ex, "IconCacheService.TryDownload");
                 if (attempt == maxAttempts)
                     break;
             }
@@ -258,7 +258,7 @@ public class IconCacheService
         }
         catch (Exception ex)
         {
-            LogService.LogError("IconCacheService.GetCachedIconPath", ex);
+            Logger.Error(ex, "IconCacheService.GetCachedIconPath");
         }
 
         return null;
@@ -283,7 +283,7 @@ public class IconCacheService
         }
         catch (Exception ex)
         {
-            LogService.LogError("IconCacheService.DeleteCachedIcon", ex);
+            Logger.Error(ex, "IconCacheService.DeleteCachedIcon");
         }
     }
 
@@ -302,12 +302,12 @@ public class IconCacheService
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("IconCacheService.DeleteUnusedIcon", ex);
+                    Logger.Error(ex, "IconCacheService.DeleteUnusedIcon");
                 }
         }
         catch (Exception ex)
         {
-            LogService.LogError("IconCacheService.DeleteUnusedIcons", ex);
+            Logger.Error(ex, "IconCacheService.DeleteUnusedIcons");
         }
     }
 

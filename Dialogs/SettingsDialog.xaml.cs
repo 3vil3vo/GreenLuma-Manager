@@ -34,9 +34,18 @@ public partial class SettingsDialog
         ChkPrefetchAppList.IsChecked = _config.PrefetchAppList;
         ChkStartSteamMinimized.IsChecked = _config.StartSteamMinimized;
         ChkDisableGreenLumaVersionNotice.IsChecked = _config.DisableGreenLumaVersionNotice;
+        ChkCheckGreenLumaUpdates.IsChecked = _config.CheckGreenLumaUpdates;
         ChkDisableUpdateCheck.IsChecked = _config.DisableUpdateCheck;
         ChkAutoUpdate.IsChecked = _config.AutoUpdate;
         UpdateGreenLumaVersionOverrideText();
+        LoadDeployMode();
+    }
+
+    private void LoadDeployMode()
+    {
+        var (isValid, isStealthOnly, _) = GreenLumaService.ValidateInstallation(_config.GreenLumaPath);
+        RbDeployStealth.IsChecked = isValid && isStealthOnly;
+        RbDeployNormal.IsChecked = !(isValid && isStealthOnly);
     }
 
     private void UpdateGreenLumaVersionOverrideText()
@@ -166,6 +175,71 @@ public partial class SettingsDialog
         UpdateGreenLumaVersionOverrideText();
     }
 
+    private void BrowseGreenLumaZip_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select GreenLuma zip file",
+            Filter = "Zip files (*.zip)|*.zip|All files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        TxtGreenLumaZipPath.Text = dialog.FileName;
+        BtnDeployGreenLuma.IsEnabled = true;
+    }
+
+    private async void DeployGreenLuma_Click(object sender, RoutedEventArgs e)
+    {
+        var zipPath = TxtGreenLumaZipPath.Text;
+        var destinationPath = NormalizePath(TxtGreenLumaPath.Text);
+
+        if (string.IsNullOrWhiteSpace(destinationPath))
+        {
+            CustomMessageBox.Show(
+                "Set the GreenLuma Directory on the General tab first.", "GreenLuma Directory Not Set",
+                icon: MessageBoxImage.Exclamation);
+            return;
+        }
+
+        var stealthMode = RbDeployStealth.IsChecked.GetValueOrDefault();
+
+        BtnDeployGreenLuma.IsEnabled = false;
+        TxtDeployStatus.Text = "Starting...";
+
+        try
+        {
+            var result = await GreenLumaDeploymentService.DeployAsync(
+                zipPath, destinationPath, stealthMode,
+                status => Dispatcher.Invoke(() => TxtDeployStatus.Text = status));
+
+            if (!result.Success)
+            {
+                TxtDeployStatus.Text = string.Empty;
+                CustomMessageBox.Show(
+                    result.ErrorMessage ?? "Deployment failed.", "Deployment Failed",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            _config.GreenLumaPath = destinationPath;
+            _config.NoHook = stealthMode;
+            ConfigService.Save(_config);
+
+            TxtDeployStatus.Text = $"Deployed {result.DeployedFiles.Count} item(s).";
+            UpdateGreenLumaVersionOverrideText();
+
+            CustomMessageBox.Show(
+                $"GreenLuma deployed successfully ({result.DeployedFiles.Count} item(s)).", "Deployment Complete",
+                icon: MessageBoxImage.Asterisk);
+        }
+        finally
+        {
+            BtnDeployGreenLuma.IsEnabled = true;
+        }
+    }
+
     private void OpenAppData_Click(object sender, RoutedEventArgs e)
     {
         var appDataDir = Path.Combine(
@@ -226,7 +300,7 @@ public partial class SettingsDialog
         }
         catch (Exception ex)
         {
-            LogService.LogError("SettingsDialog.RestartSteam", ex);
+            Logger.Error(ex, "SettingsDialog.RestartSteam");
             CustomMessageBox.Show("Failed to restart Steam: " + ex.Message, "Error",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
@@ -343,6 +417,7 @@ public partial class SettingsDialog
         _config.PrefetchAppList = ChkPrefetchAppList.IsChecked.GetValueOrDefault();
         _config.StartSteamMinimized = ChkStartSteamMinimized.IsChecked.GetValueOrDefault();
         _config.DisableGreenLumaVersionNotice = ChkDisableGreenLumaVersionNotice.IsChecked.GetValueOrDefault();
+        _config.CheckGreenLumaUpdates = ChkCheckGreenLumaUpdates.IsChecked.GetValueOrDefault();
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
         ConfigService.Save(_config);
@@ -369,7 +444,7 @@ public partial class SettingsDialog
         }
         catch (Exception ex)
         {
-            LogService.LogError("SettingsDialog.IsReadOnly", ex);
+            Logger.Error(ex, "SettingsDialog.IsReadOnly");
             return true;
         }
     }

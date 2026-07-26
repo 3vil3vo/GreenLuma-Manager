@@ -25,7 +25,7 @@ public class IconUrlConverter : IValueConverter
                 bmp.DecodePixelWidth = 64;
                 bmp.EndInit();
                 bmp.DownloadFailed += (_, args) =>
-                    LogService.LogError("IconUrlConverter.DownloadFailed", args.ErrorException);
+                    Logger.Error(args.ErrorException, "IconUrlConverter.DownloadFailed");
                 return bmp;
             }
 
@@ -48,7 +48,7 @@ public class IconUrlConverter : IValueConverter
         }
         catch (Exception ex)
         {
-            LogService.LogError("IconUrlConverter.Convert", ex);
+            Logger.Error(ex, "IconUrlConverter.Convert");
             return null;
         }
     }

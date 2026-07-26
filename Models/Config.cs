@@ -31,6 +31,8 @@ public class Config
 
     [DataMember] public string GreenLumaVersionOverride { get; set; } = string.Empty;
 
+    [DataMember] public bool CheckGreenLumaUpdates { get; set; }
+
     [DataMember] public bool FirstRun { get; set; } = true;
 
     [DataMember] public string SteamApiKey { get; set; } = string.Empty;

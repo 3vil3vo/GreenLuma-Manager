@@ -64,7 +64,7 @@ public sealed class SteamService : IDisposable
         }
         catch (Exception ex)
         {
-            LogService.LogError("SteamService.Dispose", ex);
+            Logger.Error(ex, "SteamService.Dispose");
         }
 
         _apiThrottle.Dispose();
@@ -100,7 +100,7 @@ public sealed class SteamService : IDisposable
                     }
                     catch (Exception ex)
                     {
-                        LogService.LogError("SteamService.GetTokens", ex);
+                        Logger.Error(ex, "SteamService.GetTokens");
                     }
 
                     var requests = appIds.Select(id => new SteamApps.PICSRequest
@@ -192,7 +192,7 @@ public sealed class SteamService : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("SteamService.GetAppInfoBatch", ex);
+                    Logger.Error(ex, "SteamService.GetAppInfoBatch");
                     if (attempt == maxRetries) break;
                     await Task.Delay(500).ConfigureAwait(false);
                 }
@@ -234,7 +234,7 @@ public sealed class SteamService : IDisposable
         }
         catch (Exception ex)
         {
-            LogService.LogError("SteamService.GetAppPackageInfo", ex);
+            Logger.Error(ex, "SteamService.GetAppPackageInfo");
             return null;
         }
         finally
@@ -319,7 +319,7 @@ public sealed class SteamService : IDisposable
         }
         catch (Exception ex)
         {
-            LogService.LogError("SteamService.GetPackageAppIds", ex);
+            Logger.Error(ex, "SteamService.GetPackageAppIds");
         }
 
         return appIds;
@@ -358,7 +358,7 @@ public sealed class SteamService : IDisposable
         }
         catch (Exception ex)
         {
-            LogService.LogError("SteamService.GetAppPackageIds", ex);
+            Logger.Error(ex, "SteamService.GetAppPackageIds");
         }
 
         return packageIds;
@@ -438,12 +438,12 @@ public sealed class SteamService : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("SteamService.ScanRange.Batch", ex);
+                    Logger.Error(ex, "SteamService.ScanRange.Batch");
                 }
         }
         catch (Exception ex)
         {
-            LogService.LogError("SteamService.ScanRangeForDlcs", ex);
+            Logger.Error(ex, "SteamService.ScanRangeForDlcs");
         }
 
         return foundDlcIds;
@@ -546,7 +546,7 @@ public sealed class SteamService : IDisposable
         _ = task.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.NotOnRanToCompletion);
     }
 
-    private static string MapSteamTypeToDisplayType(string steamType)
+    public static string MapSteamTypeToDisplayType(string steamType)
     {
         return steamType.ToLowerInvariant() switch
         {

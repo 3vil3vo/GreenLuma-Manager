@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Net;
 using System.Reflection;
 using System.Text.Json;
 using GreenLuma_Manager.Models;
@@ -80,6 +81,12 @@ public class SearchService
     private static volatile bool _isPrefetching;
     private static Task? _appListFetchTask;
 
+    private const int StoreApiMaxPerCall = 20;
+    private static readonly TimeSpan StoreApiMinInterval = TimeSpan.FromMilliseconds(350);
+    private static readonly TimeSpan StoreApiRateLimitBackoff = TimeSpan.FromSeconds(60);
+    private static readonly SemaphoreSlim StoreApiThrottle = new(1, 1);
+    private static DateTime _storeApiAvailableAt = DateTime.MinValue;
+
     public static void SetApiKey(string? apiKey)
     {
         _steamApiKey = apiKey ?? string.Empty;
@@ -146,7 +153,7 @@ public class SearchService
         }
         catch (Exception ex)
         {
-            LogService.LogError("SearchService.GetLegacyAppList", ex);
+            Logger.Error(ex, "SearchService.GetLegacyAppList");
             return _appListCache ?? [];
         }
         finally
@@ -180,7 +187,7 @@ public class SearchService
         }
         catch (Exception ex)
         {
-            LogService.LogError("SearchService.GetAppList", ex);
+            Logger.Error(ex, "SearchService.GetAppList");
         }
         finally
         {
@@ -214,7 +221,7 @@ public class SearchService
         }
         catch (Exception ex)
         {
-            LogService.LogError("SearchService.FetchLegacyAppList", ex);
+            Logger.Error(ex, "SearchService.FetchLegacyAppList");
         }
 
         return results;
@@ -266,7 +273,7 @@ public class SearchService
         }
         catch (Exception ex)
         {
-            LogService.LogError("SearchService.FetchModernAppList", ex);
+            Logger.Error(ex, "SearchService.FetchModernAppList");
         }
 
         return results;
@@ -288,7 +295,7 @@ public class SearchService
         }
         catch (Exception ex)
         {
-            LogService.LogError("SearchService.MergeAppLists", ex);
+            Logger.Error(ex, "SearchService.MergeAppLists");
             return [.. merged.Values];
         }
     }
@@ -356,7 +363,7 @@ public class SearchService
         }
         catch (Exception ex)
         {
-            LogService.LogError("SearchService.SearchAsync", ex);
+            Logger.Error(ex, "SearchService.SearchAsync");
             return [];
         }
     }
@@ -482,6 +489,24 @@ public class SearchService
                     DetailsCache.TryAdd(appIdStr, details);
                 }
 
+                var stillMissing = validAppIds.Where(id => !results.ContainsKey(id)).ToList();
+                if (stillMissing.Count > 0)
+                {
+                    var storeResults = await FetchGameDetailsFromStoreApiAsync(stillMissing).ConfigureAwait(false);
+                    foreach (var (appId, details) in storeResults)
+                    {
+                        results[appId] = details;
+
+                        var key = $"details:{appId}";
+                        SteamApiCache.Cache[key] = new CacheEntry<object>
+                        {
+                            Expiry = DateTime.Now.Add(TimeSpan.FromMinutes(30)),
+                            Data = details
+                        };
+                        DetailsCache.TryAdd(appId, details);
+                    }
+                }
+
                 foreach (var appIdStr in validAppIds.Where(id => !results.ContainsKey(id)))
                 {
                     var fallbackDetails = new GameDetails(appIdStr, "Game", $"App {appIdStr}");
@@ -490,13 +515,85 @@ public class SearchService
             }
             catch (Exception ex)
             {
-                LogService.LogError("SearchService.FetchBatch", ex);
+                Logger.Error(ex, "SearchService.FetchBatch");
                 foreach (var appIdStr in batch)
                     if (!results.ContainsKey(appIdStr))
                         results[appIdStr] = new GameDetails(appIdStr, "Game", $"App {appIdStr}");
             }
 
         return results;
+    }
+
+    private static async Task<Dictionary<string, GameDetails>> FetchGameDetailsFromStoreApiAsync(
+        IReadOnlyList<string> appIds)
+    {
+        var results = new Dictionary<string, GameDetails>();
+
+        if (appIds.Count > StoreApiMaxPerCall)
+            Logger.Debug(
+                $"SearchService.FetchGameDetailsFromStoreApi: {appIds.Count} unresolved apps, only trying the first {StoreApiMaxPerCall} to avoid rate limiting");
+
+        foreach (var appId in appIds.Take(StoreApiMaxPerCall))
+        {
+            var details = await FetchSingleAppDetailsAsync(appId).ConfigureAwait(false);
+            if (details != null)
+                results[appId] = details;
+        }
+
+        return results;
+    }
+
+    private static async Task<GameDetails?> FetchSingleAppDetailsAsync(string appId)
+    {
+        await StoreApiThrottle.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var wait = _storeApiAvailableAt - DateTime.UtcNow;
+            if (wait > TimeSpan.Zero)
+                await Task.Delay(wait).ConfigureAwait(false);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var url = $"https://store.steampowered.com/api/appdetails?appids={appId}";
+            using var response = await HttpClientProvider.Default.GetAsync(url, cts.Token).ConfigureAwait(false);
+
+            _storeApiAvailableAt = DateTime.UtcNow.Add(StoreApiMinInterval);
+
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                Logger.Warn("SearchService.FetchSingleAppDetails: rate limited, backing off");
+                _storeApiAvailableAt = DateTime.UtcNow.Add(StoreApiRateLimitBackoff);
+                return null;
+            }
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var body = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+
+            if (!doc.RootElement.TryGetProperty(appId, out var appElement))
+                return null;
+            if (!appElement.TryGetProperty("success", out var successProp) || !successProp.GetBoolean())
+                return null;
+            if (!appElement.TryGetProperty("data", out var data))
+                return null;
+
+            var name = data.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+            var type = data.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : null;
+
+            return string.IsNullOrWhiteSpace(name)
+                ? null
+                : new GameDetails(appId, SteamService.MapSteamTypeToDisplayType(type ?? "game"), name);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"SearchService.FetchSingleAppDetails: appId={appId}");
+            return null;
+        }
+        finally
+        {
+            StoreApiThrottle.Release();
+        }
     }
 
     public static async Task PopulateGameDetailsAsync(Game game, CancellationToken ct = default)
@@ -599,7 +696,7 @@ public class SearchService
         }
         catch (Exception ex)
         {
-            LogService.LogError("SearchService.FetchStoreBrowseItems", ex);
+            Logger.Error(ex, "SearchService.FetchStoreBrowseItems");
         }
 
         return results;

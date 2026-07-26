@@ -17,7 +17,7 @@ Thank you for your interest in contributing to GreenLuma Manager!
 3. **Restore NuGet packages**
     - Right-click the solution in Solution Explorer
     - Select "Restore NuGet Packages"
-    - Packages used: Newtonsoft.Json, SteamKit2
+    - Packages used: Newtonsoft.Json, SteamKit2, SharpCompress, Microsoft.Web.WebView2
 
 4. **Build and run**
     - Press F5 to build and run in debug mode
@@ -38,11 +38,14 @@ Thank you for your interest in contributing to GreenLuma Manager!
     - `SearchService.cs` - Matching games against the bundled and Steam API app lists
     - `GreenLumaService.cs` - AppList generation, DLLInjector.ini updates, and launching GreenLuma
     - `GreenLumaVersionPromptService.cs` - The one-time prompt for a mislabeled GreenLuma version
+    - `GreenLumaDeploymentService.cs` - Extracts a GreenLuma zip and deploys Normal or Stealth mode files
+    - `GreenLumaUpdateService.cs` - Checks the GreenLuma forum thread for a newer release
+    - `WebView2Helper.cs` - Shared, isolated WebView2 environment for the forum update check
     - `DepotService.cs` and `SteamService.cs` - Resolving depot and DLC info through SteamKit2
     - `UpdateService.cs` - Checking for and applying app updates
     - `IconCacheService.cs` - Downloading and caching game icons
     - `PluginService.cs` - Loading, enabling, and removing plugins
-    - `LogService.cs` - Error logging
+    - `Logger.cs` - Leveled logging (Debug/Info/Warn/Error) with automatic caller info
     - `HttpClientProvider.cs` - Shared HttpClient instance
 - `Models/` - Data models
     - `Config.cs` - Application configuration
@@ -50,6 +53,8 @@ Thank you for your interest in contributing to GreenLuma Manager!
     - `Game.cs` - A single game or DLC entry, with `INotifyPropertyChanged`
     - `PluginInfo.cs` and `PluginManifest.cs` - Plugin metadata
     - `UpdateInfo.cs` - Update check result
+    - `GreenLumaDeploymentResult.cs` - Result of a GreenLuma zip deploy
+    - `GreenLumaVersionInfo.cs` - Result of a GreenLuma forum version check
     - `AppListProgressReport.cs` - Progress reporting for long-running AppList operations
 - `Plugins/` - `IPlugin.cs`, the interface external plugins implement
 - `Dialogs/` - WPF dialog windows
@@ -106,6 +111,9 @@ Before submitting:
 - Verify icon loading and search still work correctly
 - If you touch GreenLuma launching or AppList generation, test with both stealth mode on and off, and with a
   GreenLuma version below 1.8.0 and one at 1.8.0 or above
+- If you touch the GreenLuma zip deploy, test both a fresh install into an empty folder and updating an
+  already-configured install, for both Normal and Stealth mode
+- If you touch anything using WebView2, verify the WebView2 Runtime is installed on the test machine first
 
 ## Reporting Bugs
 

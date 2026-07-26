@@ -28,7 +28,7 @@ public partial class App
                         }
                         catch (Exception ex)
                         {
-                            LogService.LogError("App.LaunchGreenluma", ex);
+                            Logger.Error(ex, "App.LaunchGreenluma");
                         }
 
                         Shutdown();
@@ -47,7 +47,7 @@ public partial class App
         }
         catch (Exception ex)
         {
-            LogService.LogError("App.OnStartup", ex);
+            Logger.Error(ex, "App.OnStartup");
         }
     }
 
@@ -60,7 +60,7 @@ public partial class App
         }
         catch (Exception ex)
         {
-            LogService.LogError("App.OnExit", ex);
+            Logger.Error(ex, "App.OnExit");
         }
 
         base.OnExit(e);
@@ -114,7 +114,7 @@ public partial class App
                         }
                         catch (Exception ex)
                         {
-                            LogService.LogError("App.WarmupIcon", ex);
+                            Logger.Error(ex, "App.WarmupIcon");
                         }
                     });
 
@@ -125,13 +125,13 @@ public partial class App
                     }
                     catch (Exception ex)
                     {
-                        LogService.LogError("App.WarmupSave", ex);
+                        Logger.Error(ex, "App.WarmupSave");
                     }
             }
         }
         catch (Exception ex)
         {
-            LogService.LogError("App.WarmupIcons", ex);
+            Logger.Error(ex, "App.WarmupIcons");
         }
     }
 }

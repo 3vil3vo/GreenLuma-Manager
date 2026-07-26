@@ -33,7 +33,7 @@ public class ConfigService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ConfigService.Load", ex);
+            Logger.Error(ex, "ConfigService.Load");
             return new Config();
         }
     }
@@ -63,7 +63,7 @@ public class ConfigService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ConfigService.DeserializeConfig", ex);
+            Logger.Error(ex, "ConfigService.DeserializeConfig");
             return null;
         }
     }
@@ -100,7 +100,7 @@ public class ConfigService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ConfigService.TryMigrate", ex);
+            Logger.Error(ex, "ConfigService.TryMigrate");
             return null;
         }
     }
@@ -116,7 +116,7 @@ public class ConfigService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ConfigService.Save", ex);
+            Logger.Error(ex, "ConfigService.Save");
         }
     }
 
@@ -135,7 +135,7 @@ public class ConfigService
         }
         catch (Exception ex)
         {
-            LogService.LogError("ConfigService.WipeData", ex);
+            Logger.Error(ex, "ConfigService.WipeData");
         }
     }
 }

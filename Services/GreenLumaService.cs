@@ -88,7 +88,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.ValidateInstallation", ex);
+            Logger.Error(ex, "GreenLumaService.ValidateInstallation");
         }
 
         if (year == null || arch == null)
@@ -97,23 +97,7 @@ public partial class GreenLumaService
             return (false, false, missing);
         }
 
-        var primaryDll = $"GreenLuma_{year}_x{arch}.dll";
-
-        var stealthFiles = new List<string>
-        {
-            "DLLInjector.exe",
-            "DLLInjector.ini",
-            $"GreenLumaSettings_{year}.exe",
-            primaryDll
-        };
-
-        var otherArch = arch == "64" ? "86" : "64";
-        var fullFiles = new List<string>
-        {
-            $"GreenLuma_{year}_x{otherArch}.dll",
-            Path.Combine($"GreenLuma{year}_Files", "AchievementUnlocked.wav"),
-            Path.Combine($"GreenLuma{year}_Files", "BootImage.bmp")
-        };
+        var (stealthFiles, fullFiles) = GetRequiredFileNames(year, arch);
 
         var missingStealth = new List<string>();
         foreach (var f in stealthFiles)
@@ -135,6 +119,30 @@ public partial class GreenLumaService
         if (missingFull.Count > 0) return (true, true, missingFull);
 
         return (true, false, new List<string>());
+    }
+
+    public static (List<string> StealthFiles, List<string> FullOnlyFiles) GetRequiredFileNames(
+        string year, string primaryArch)
+    {
+        var primaryDll = $"GreenLuma_{year}_x{primaryArch}.dll";
+
+        var stealthFiles = new List<string>
+        {
+            "DLLInjector.exe",
+            "DLLInjector.ini",
+            $"GreenLumaSettings_{year}.exe",
+            primaryDll
+        };
+
+        var otherArch = primaryArch == "64" ? "86" : "64";
+        var fullOnlyFiles = new List<string>
+        {
+            $"GreenLuma_{year}_x{otherArch}.dll",
+            Path.Combine($"GreenLuma{year}_Files", "AchievementUnlocked.wav"),
+            Path.Combine($"GreenLuma{year}_Files", "BootImage.bmp")
+        };
+
+        return (stealthFiles, fullOnlyFiles);
     }
 
     public static bool IsAppListGenerated(Config config)
@@ -186,7 +194,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.ReadAppIdsFromIni", ex);
+            Logger.Error(ex, "GreenLumaService.ReadAppIdsFromIni");
         }
 
         return appIds;
@@ -225,7 +233,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.DetectVersion", ex);
+            Logger.Error(ex, "GreenLumaService.DetectVersion");
             return null;
         }
     }
@@ -269,7 +277,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.GenerateAppList", ex);
+            Logger.Error(ex, "GreenLumaService.GenerateAppList");
             return -1;
         }
     }
@@ -290,8 +298,9 @@ public partial class GreenLumaService
         var templateLines = LoadIniTemplate();
         if (templateLines == null)
         {
-            LogService.LogError("GreenLumaService.GenerateIniAppList",
-                new InvalidOperationException("AppList.ini template resource could not be loaded"));
+            Logger.Error(
+                new InvalidOperationException("AppList.ini template resource could not be loaded"),
+                "GreenLumaService.GenerateIniAppList");
             return false;
         }
 
@@ -332,7 +341,7 @@ public partial class GreenLumaService
             }
             catch (Exception ex)
             {
-                LogService.LogError("GreenLumaService.DeleteAppListFile", ex);
+                Logger.Error(ex, "GreenLumaService.DeleteAppListFile");
             }
     }
 
@@ -364,7 +373,7 @@ public partial class GreenLumaService
             }
             catch (Exception ex)
             {
-                LogService.LogError("GreenLumaService.LaunchGreenLuma", ex);
+                Logger.Error(ex, "GreenLumaService.LaunchGreenLuma");
                 return false;
             }
         });
@@ -423,7 +432,7 @@ public partial class GreenLumaService
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("GreenLumaService.KillSteam.Shutdown", ex);
+                    Logger.Error(ex, "GreenLumaService.KillSteam.Shutdown");
                 }
 
             foreach (var processName in processNames)
@@ -433,7 +442,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.KillSteam", ex);
+            Logger.Error(ex, "GreenLumaService.KillSteam");
         }
     }
 
@@ -459,7 +468,7 @@ public partial class GreenLumaService
                         }
                         catch (Exception ex)
                         {
-                            LogService.LogError("GreenLumaService.Kill", ex);
+                            Logger.Error(ex, "GreenLumaService.Kill");
                         }
                         finally
                         {
@@ -486,7 +495,7 @@ public partial class GreenLumaService
             }
             catch (Exception ex)
             {
-                LogService.LogError("GreenLumaService.KillProcess", ex);
+                Logger.Error(ex, "GreenLumaService.KillProcess");
             }
     }
 
@@ -502,7 +511,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.AreSameDirectory", ex);
+            Logger.Error(ex, "GreenLumaService.AreSameDirectory");
             return false;
         }
     }
@@ -525,7 +534,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.UpdateInjectorIni", ex);
+            Logger.Error(ex, "GreenLumaService.UpdateInjectorIni");
         }
     }
 
@@ -553,7 +562,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.ExtractDllValue", ex);
+            Logger.Error(ex, "GreenLumaService.ExtractDllValue");
         }
 
         return null;
@@ -575,7 +584,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.CleanDllValue", ex);
+            Logger.Error(ex, "GreenLumaService.CleanDllValue");
         }
 
         return s;
@@ -606,7 +615,7 @@ public partial class GreenLumaService
                 }
                 catch (Exception ex)
                 {
-                    LogService.LogError("GreenLumaService.IsPathRooted", ex);
+                    Logger.Error(ex, "GreenLumaService.IsPathRooted");
                     rooted = false;
                 }
 
@@ -619,7 +628,7 @@ public partial class GreenLumaService
                     }
                     catch (Exception ex)
                     {
-                        LogService.LogError("GreenLumaService.GetFullPath", ex);
+                        Logger.Error(ex, "GreenLumaService.GetFullPath");
                     }
 
                     settings["Dll"] = $" \"{full}\"";
@@ -633,7 +642,7 @@ public partial class GreenLumaService
                     }
                     catch (Exception ex)
                     {
-                        LogService.LogError("GreenLumaService.GetFullPath", ex);
+                        Logger.Error(ex, "GreenLumaService.GetFullPath");
                     }
 
                     settings["Dll"] = $" \"{fullDllPath}\"";
@@ -799,7 +808,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.DefenderCheck", ex);
+            Logger.Error(ex, "GreenLumaService.DefenderCheck");
         }
 
         var conflictingFiles = new[] { "RTSSHooks64.dll", "RTSSHooks.dll" };
@@ -901,7 +910,7 @@ public partial class GreenLumaService
             }
             catch (Exception ex)
             {
-                LogService.LogError("GreenLumaService.MonitorSteam", ex);
+                Logger.Error(ex, "GreenLumaService.MonitorSteam");
                 return $"Monitoring error: {ex.Message}";
             }
         });
@@ -945,7 +954,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.GetCrashFromEventLog", ex);
+            Logger.Error(ex, "GreenLumaService.GetCrashFromEventLog");
         }
 
         return null;
@@ -980,7 +989,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.QuarantineCheck", ex);
+            Logger.Error(ex, "GreenLumaService.QuarantineCheck");
         }
 
         return null;
@@ -1011,7 +1020,7 @@ public partial class GreenLumaService
         }
         catch (Exception ex)
         {
-            LogService.LogError("GreenLumaService.GetDllPathFromIni", ex);
+            Logger.Error(ex, "GreenLumaService.GetDllPathFromIni");
         }
 
         return null;

@@ -736,7 +736,7 @@
                                             TextWrapping="Wrap" />
                                     </StackPanel>
 
-                                    <StackPanel>
+                                    <StackPanel Margin="0,0,0,24">
                                         <CheckBox
                                             x:Name="ChkDisableGreenLumaVersionNotice"
                                             Content="Disable GreenLuma Version Notice"
@@ -746,6 +746,19 @@
                                             FontSize="13"
                                             Foreground="{StaticResource TextTertiary}"
                                             Text="Hide the detected GreenLuma version and outdated warning from the status bar."
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel>
+                                        <CheckBox
+                                            x:Name="ChkCheckGreenLumaUpdates"
+                                            Content="Check GreenLuma Forum for Updates"
+                                            Style="{StaticResource ChillSwitch}" />
+                                        <TextBlock
+                                            Margin="0,4,60,0"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextTertiary}"
+                                            Text="Check the GreenLuma forum thread on startup for a newer release than what's installed. Opens a hidden browser instance to read the page."
                                             TextWrapping="Wrap" />
                                     </StackPanel>
                                 </StackPanel>
@@ -917,6 +930,78 @@
                                         Content="Change"
                                         Style="{StaticResource ModernBtn}" />
                                 </Grid>
+                            </Border>
+
+                            <Border
+                                Margin="0,0,0,20"
+                                Padding="24"
+                                Background="{StaticResource SurfaceBg}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock
+                                        FontSize="15"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextPrimary}"
+                                        Text="Install / Update GreenLuma" />
+                                    <TextBlock Style="{StaticResource DescriptionTxt}"
+                                               Text="Extract a GreenLuma zip file and deploy it to the GreenLuma Directory set on the General tab. Works for a fresh install or updating an existing one." />
+
+                                    <Grid Margin="0,12,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox
+                                            x:Name="TxtGreenLumaZipPath"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource ChillTextBox}" />
+                                        <Button
+                                            Grid.Column="2"
+                                            Width="80"
+                                            Click="BrowseGreenLumaZip_Click"
+                                            Content="Browse"
+                                            Style="{StaticResource ModernBtn}" />
+                                    </Grid>
+
+                                    <StackPanel Margin="0,0,0,12" Orientation="Horizontal">
+                                        <RadioButton
+                                            x:Name="RbDeployNormal"
+                                            Margin="0,0,20,0"
+                                            Content="Normal"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            GroupName="DeployMode"
+                                            IsChecked="True" />
+                                        <RadioButton
+                                            x:Name="RbDeployStealth"
+                                            Content="Stealth"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            GroupName="DeployMode" />
+                                    </StackPanel>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="TxtDeployStatus"
+                                            VerticalAlignment="Center"
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            TextWrapping="Wrap" />
+                                        <Button
+                                            x:Name="BtnDeployGreenLuma"
+                                            Grid.Column="2"
+                                            Click="DeployGreenLuma_Click"
+                                            Content="Install / Update"
+                                            IsEnabled="False"
+                                            Style="{StaticResource ModernBtn}" />
+                                    </Grid>
+                                </StackPanel>
                             </Border>
 
                             <Border

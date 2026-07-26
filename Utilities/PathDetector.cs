@@ -53,7 +53,7 @@ public partial class PathDetector
         }
         catch (Exception ex)
         {
-            LogService.LogError("PathDetector.TryGetRegistryPath", ex);
+            Logger.Error(ex, "PathDetector.TryGetRegistryPath");
         }
 
         return null;
@@ -118,7 +118,7 @@ public partial class PathDetector
         }
         catch (Exception ex)
         {
-            LogService.LogError("PathDetector.ContainsGreenLumaFiles", ex);
+            Logger.Error(ex, "PathDetector.ContainsGreenLumaFiles");
         }
 
         return false;

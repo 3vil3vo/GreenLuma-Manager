@@ -2559,5 +2559,11 @@
                     TextWrapping="Wrap" />
             </StackPanel>
         </Border>
+
+        <Grid
+            x:Name="PnlWebView2Host"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            IsHitTestVisible="False" />
     </Grid>
 </Window>
