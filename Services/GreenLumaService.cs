@@ -55,6 +55,12 @@ public partial class GreenLumaService
             : config.GreenLumaVersionOverride;
     }
 
+    public static bool RequiresNoQuestionFile(string? greenLumaVersion)
+    {
+        return string.IsNullOrWhiteSpace(greenLumaVersion) ||
+               CompareVersions(greenLumaVersion, IniAppListMinVersion) < 0;
+    }
+
     public static (bool IsValid, bool IsStealthOnly, List<string> MissingFiles) ValidateInstallation(string path)
     {
         var missing = new List<string>();
@@ -87,7 +93,7 @@ public partial class GreenLumaService
 
         if (year == null || arch == null)
         {
-            missing.Add("GreenLuma_YYYY_xNN.dll (e.g. GreenLuma_2025_x64.dll)");
+            missing.Add("GreenLuma_YYYY_xNN.dll (e.g. GreenLuma_2026_x64.dll)");
             return (false, false, missing);
         }
 
@@ -582,10 +588,7 @@ public partial class GreenLumaService
 
         var steamExePath = Path.Combine(config.SteamPath, "Steam.exe");
 
-        var settings = new Dictionary<string, string>
-        {
-            ["FileToCreate_1"] = " NoQuestion.bin"
-        };
+        var settings = new Dictionary<string, string>();
 
         if (useSeparatePaths)
         {
@@ -645,10 +648,12 @@ public partial class GreenLumaService
             if (!string.IsNullOrWhiteSpace(dllValue)) settings["Dll"] = $" {dllValue}";
         }
 
+        var needsNoQuestionFile = RequiresNoQuestionFile(ResolveVersion(config, DetectVersion(config.GreenLumaPath)));
+
         if (config.NoHook)
-            ApplyStealthModeSettings(settings);
+            ApplyStealthModeSettings(settings, needsNoQuestionFile);
         else
-            ApplyNormalModeSettings(settings);
+            ApplyNormalModeSettings(settings, needsNoQuestionFile);
 
         if (config.StartSteamMinimized)
             settings["CommandLine"] = settings.GetValueOrDefault("CommandLine", "") + " -silent";
@@ -656,23 +661,45 @@ public partial class GreenLumaService
         return settings;
     }
 
-    private static void ApplyStealthModeSettings(Dictionary<string, string> settings)
+    private static void ApplyStealthModeSettings(Dictionary<string, string> settings, bool needsNoQuestionFile)
     {
         settings["CommandLine"] = "";
         settings["WaitForProcessTermination"] = " 0";
         settings["EnableFakeParentProcess"] = " 1";
         settings["EnableMitigationsOnChildProcess"] = " 0";
-        settings["CreateFiles"] = " 2";
-        settings["FileToCreate_2"] = " StealthMode.bin";
+
+        if (needsNoQuestionFile)
+        {
+            settings["CreateFiles"] = " 2";
+            settings["FileToCreate_1"] = " NoQuestion.bin";
+            settings["FileToCreate_2"] = " StealthMode.bin";
+        }
+        else
+        {
+            settings["CreateFiles"] = " 1";
+            settings["FileToCreate_1"] = " StealthMode.bin";
+            settings["FileToCreate_2"] = "";
+        }
     }
 
-    private static void ApplyNormalModeSettings(Dictionary<string, string> settings)
+    private static void ApplyNormalModeSettings(Dictionary<string, string> settings, bool needsNoQuestionFile)
     {
         settings["CommandLine"] = " -inhibitbootstrap";
         settings["WaitForProcessTermination"] = " 1";
         settings["EnableFakeParentProcess"] = " 0";
-        settings["CreateFiles"] = " 1";
-        settings.TryAdd("FileToCreate_2", "");
+
+        if (needsNoQuestionFile)
+        {
+            settings["CreateFiles"] = " 1";
+            settings["FileToCreate_1"] = " NoQuestion.bin";
+        }
+        else
+        {
+            settings["CreateFiles"] = " 0";
+            settings["FileToCreate_1"] = "";
+        }
+
+        settings["FileToCreate_2"] = "";
     }
 
     private static List<string> ApplySettings(List<string> originalLines, Dictionary<string, string> settings)

@@ -64,15 +64,13 @@ public static class SteamApiCache
 
 public class SearchService
 {
-    private const string SteamStoreSearchUrl =
-        "https://store.steampowered.com/api/storesearch/?term={0}&l=english&cc=US";
-
     private const string SteamStoreApiUrl = "https://api.steampowered.com/IStoreService/GetAppList/v1/";
     private const int BatchSize = 150;
     private const int AppListPageSize = 50000;
 
     private const string LegacyResourceName = "GreenLuma_Manager.Data.steam_applist_legacy.json";
 
+    private static readonly TimeSpan AppListFetchWait = TimeSpan.FromSeconds(4);
     private static string _steamApiKey = string.Empty;
     private static List<SteamApp>? _appListCache;
     private static readonly SemaphoreSlim AppListLock = new(1, 1);
@@ -80,6 +78,7 @@ public class SearchService
     private static DateTime _cacheExpiry = DateTime.MinValue;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
     private static volatile bool _isPrefetching;
+    private static Task? _appListFetchTask;
 
     public static void SetApiKey(string? apiKey)
     {
@@ -93,68 +92,43 @@ public class SearchService
         return app?.Name;
     }
 
-    private static async Task<List<Game>> SearchStoreAsync(string query, CancellationToken ct = default)
-    {
-        try
-        {
-            var url = string.Format(SteamStoreSearchUrl, Uri.EscapeDataString(query));
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, ct);
-            var response = await HttpClientProvider.Default.GetStringAsync(url, linkedCts.Token).ConfigureAwait(false);
-            using var doc = JsonDocument.Parse(response);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("items", out var items)) return [];
-
-            var results = new List<Game>();
-
-            foreach (var item in items.EnumerateArray())
-            {
-                var appId = item.TryGetProperty("id", out var idProp) ? idProp.ToString() : null;
-                var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
-                var tinyImage = item.TryGetProperty("tiny_image", out var imgProp) ? imgProp.GetString() : null;
-
-                if (!string.IsNullOrEmpty(appId) && !string.IsNullOrEmpty(name))
-                    results.Add(new Game
-                    {
-                        AppId = appId,
-                        Name = name,
-                        Type = "Game",
-                        IconUrl = tinyImage ?? string.Empty
-                    });
-            }
-
-            return results;
-        }
-        catch (Exception ex)
-        {
-            LogService.LogError("SearchService.SearchStore", ex);
-            return [];
-        }
-    }
-
-    private static Task<List<SteamApp>> GetBestAvailableAppListAsync(CancellationToken ct = default)
+    private static async Task<List<SteamApp>> GetBestAvailableAppListAsync(CancellationToken ct = default)
     {
         if (_appListCache != null && DateTime.Now < _cacheExpiry)
-            return Task.FromResult(_appListCache);
+            return _appListCache;
 
-        if (!string.IsNullOrWhiteSpace(_steamApiKey) && !_isPrefetching)
+        if (string.IsNullOrWhiteSpace(_steamApiKey))
+            return await GetLegacyAppListAsync(ct).ConfigureAwait(false);
+
+        var fetchTask = _isPrefetching && _appListFetchTask != null
+            ? _appListFetchTask
+            : StartAppListFetch();
+
+        var legacyTask = GetLegacyAppListAsync(ct);
+
+        var completed = await Task.WhenAny(fetchTask, Task.Delay(AppListFetchWait, ct)).ConfigureAwait(false);
+        if (completed == fetchTask && _appListCache != null)
+            return _appListCache;
+
+        return await legacyTask.ConfigureAwait(false);
+    }
+
+    private static Task StartAppListFetch()
+    {
+        _isPrefetching = true;
+        var task = Task.Run(async () =>
         {
-            _isPrefetching = true;
-            _ = Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await GetAppListAsync().ConfigureAwait(false);
-                }
-                catch
-                {
-                    _isPrefetching = false;
-                }
-            });
-        }
-
-        return GetLegacyAppListAsync(ct);
+                await GetAppListAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                _isPrefetching = false;
+            }
+        });
+        _appListFetchTask = task;
+        return task;
     }
 
     private static async Task<List<SteamApp>> GetLegacyAppListAsync(CancellationToken ct = default)
@@ -319,26 +293,16 @@ public class SearchService
         }
     }
 
-    public static async Task PrefetchAsync(Config config)
+    public static Task PrefetchAsync(Config config)
     {
         if (_isPrefetching || (_appListCache != null && DateTime.Now < _cacheExpiry))
-            return;
+            return Task.CompletedTask;
 
         if (string.IsNullOrWhiteSpace(_steamApiKey) && !config.PrefetchAppList)
-            return;
+            return Task.CompletedTask;
 
-        _isPrefetching = true;
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await GetAppListAsync().ConfigureAwait(false);
-            }
-            catch
-            {
-                _isPrefetching = false;
-            }
-        });
+        StartAppListFetch();
+        return Task.CompletedTask;
     }
 
     public static async Task<List<Game>> SearchAsync(string query, int maxResults = 200, CancellationToken ct = default)
@@ -371,40 +335,18 @@ public class SearchService
                         ];
                 }
 
-                var storeTask = SearchStoreAsync(query, ct);
-                var appListTask = GetBestAvailableAppListAsync(ct);
+                var appList = await GetBestAvailableAppListAsync(ct).ConfigureAwait(false);
+                if (appList is not { Count: > 0 })
+                    return [];
 
-                await Task.WhenAll(storeTask, appListTask).ConfigureAwait(false);
-
-                var appList = appListTask.Result;
-                List<Game> localResults = [];
-                if (appList is { Count: > 0 })
-                    localResults = appList
-                        .Select(app => (app, score: CalculateScore(app.NameLower, queryLower)))
-                        .Where(x => x.score > 0)
-                        .OrderByDescending(x => x.score)
-                        .ThenBy(x => x.app.Name.Length)
-                        .Take(maxResults)
-                        .Select(x => new Game { AppId = x.app.AppId, Name = x.app.Name, Type = "Game" })
-                        .ToList();
-
-                var smartResults = storeTask.Result;
-
-                var finalResults = new List<Game>(localResults);
-                var existingIds = new HashSet<string>(localResults.Select(g => g.AppId));
-
-                foreach (var game in smartResults)
-                {
-                    if (finalResults.Count >= maxResults) break;
-
-                    if (!existingIds.Contains(game.AppId))
-                    {
-                        finalResults.Add(game);
-                        existingIds.Add(game.AppId);
-                    }
-                }
-
-                return finalResults;
+                return appList
+                    .Select(app => (app, score: CalculateScore(app.NameLower, queryLower)))
+                    .Where(x => x.score > 0)
+                    .OrderByDescending(x => x.score)
+                    .ThenBy(x => x.app.Name.Length)
+                    .Take(maxResults)
+                    .Select(x => new Game { AppId = x.app.AppId, Name = x.app.Name, Type = "Game" })
+                    .ToList();
             }).ConfigureAwait(false);
 
             return
@@ -446,7 +388,7 @@ public class SearchService
         if (nameLower.Contains(query))
             score += 1000;
 
-        var lengthPenalty = Math.Max(0, (nameLower.Length - query.Length) * 50);
+        var lengthPenalty = Math.Min(900, Math.Max(0, (nameLower.Length - query.Length) * 20));
         score -= lengthPenalty;
 
         if (HasWordBoundaryMatch(nameLower, query))

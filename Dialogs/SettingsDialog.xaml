@@ -911,6 +911,7 @@
                                             TextWrapping="Wrap" />
                                     </StackPanel>
                                     <Button
+                                        x:Name="BtnChangeGreenLumaVersion"
                                         Grid.Column="1"
                                         Click="ChangeGreenLumaVersion_Click"
                                         Content="Change"

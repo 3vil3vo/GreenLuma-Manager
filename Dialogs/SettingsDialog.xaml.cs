@@ -41,6 +41,18 @@ public partial class SettingsDialog
 
     private void UpdateGreenLumaVersionOverrideText()
     {
+        var detected = GreenLumaService.DetectVersion(_config.GreenLumaPath);
+        var isOverridable = string.Equals(detected, GreenLumaVersionDialog.LegacyVersion, StringComparison.Ordinal) ||
+                             string.Equals(detected, GreenLumaVersionDialog.CurrentVersion, StringComparison.Ordinal);
+
+        BtnChangeGreenLumaVersion.IsEnabled = isOverridable;
+
+        if (!isOverridable)
+        {
+            TxtGreenLumaVersionOverride.Text = "Only changeable when GreenLuma reports version 1.7.9 or 1.8.0.";
+            return;
+        }
+
         TxtGreenLumaVersionOverride.Text = string.IsNullOrWhiteSpace(_config.GreenLumaVersionOverride)
             ? "Change which GreenLuma version's behavior is used for AppList generation."
             : $"Currently set to {_config.GreenLumaVersionOverride}. Change which GreenLuma version's behavior is used for AppList generation.";

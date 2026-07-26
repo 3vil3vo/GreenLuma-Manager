@@ -172,7 +172,7 @@ public class SearchController
             return;
         }
 
-        foreach (var game in results.Take(100))
+        foreach (var game in results)
             SearchResults.Add(game);
 
         _dgResults.Visibility = Visibility.Visible;
