@@ -114,7 +114,7 @@ public static partial class GreenLumaDeploymentService
                 Overwrite = true
             };
 
-            ArchiveFactory.WriteToDirectory(archive, extractDir, extractionOptions);
+            archive.WriteToDirectory(extractDir, extractionOptions);
 
             if (Directory.GetFiles(extractDir, "*", SearchOption.AllDirectories).Length == 0)
             {

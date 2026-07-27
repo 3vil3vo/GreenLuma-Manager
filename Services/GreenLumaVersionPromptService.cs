@@ -15,7 +15,7 @@ public static class GreenLumaVersionPromptService
             return;
 
         var detected = GreenLumaService.DetectVersion(greenLumaPath);
-        if (!string.Equals(detected, GreenLumaService.LegacyVersion, StringComparison.Ordinal))
+        if (detected == null || !string.Equals(detected, GreenLumaService.LegacyVersion, StringComparison.Ordinal))
             return;
 
         var chosen = GreenLumaVersionDialog.Show(detected);
