@@ -39,7 +39,9 @@ Thank you for your interest in contributing to GreenLuma Manager!
     - `GreenLumaService.cs` - AppList generation, DLLInjector.ini updates, and launching GreenLuma
     - `GreenLumaVersionPromptService.cs` - The one-time prompt for a mislabeled GreenLuma version
     - `GreenLumaDeploymentService.cs` - Extracts a GreenLuma zip and deploys Normal or Stealth mode files
-    - `GreenLumaUpdateService.cs` - Checks the GreenLuma forum thread for a newer release
+    - `GreenLumaUpdateService.cs` - Checks the GreenLuma forum thread for a newer release, and auto-detects the
+      default for whether that check runs
+    - `InternetConnectivityChecker.cs` - Checks for a working internet connection before attempting the forum check
     - `WebView2Helper.cs` - Shared, isolated WebView2 environment for the forum update check
     - `DepotService.cs` and `SteamService.cs` - Resolving depot and DLC info through SteamKit2
     - `UpdateService.cs` - Checking for and applying app updates
@@ -68,6 +70,7 @@ Thank you for your interest in contributing to GreenLuma Manager!
     - `IconUrlConverter.cs` - WPF value converter for icons
     - `AutostartManager.cs` - Windows startup integration
     - `RelayCommand.cs` - Simple `ICommand` implementation for keyboard shortcuts
+    - `AtomicFile.cs` - Crash-safe file writes via a temp file and atomic move
 - `MainWindow.xaml` - Main application window
 
 ## Code Style

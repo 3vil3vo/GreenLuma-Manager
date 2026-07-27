@@ -2,6 +2,7 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using GreenLuma_Manager.Models;
+using GreenLuma_Manager.Utilities;
 using Newtonsoft.Json.Linq;
 
 namespace GreenLuma_Manager.Services;
@@ -84,7 +85,7 @@ public class ProfileService
             EnsureProfilesDirectoryExists();
             var filePath = GetProfileFilePath(profile.Name);
             var json = SerializeProfile(profile);
-            File.WriteAllText(filePath, json, Encoding.UTF8);
+            AtomicFile.WriteAllText(filePath, json);
         }
         catch (Exception ex)
         {
@@ -113,7 +114,7 @@ public class ProfileService
         try
         {
             var json = SerializeProfile(profile);
-            File.WriteAllText(destinationPath, json, Encoding.UTF8);
+            AtomicFile.WriteAllText(destinationPath, json);
         }
         catch (Exception ex)
         {

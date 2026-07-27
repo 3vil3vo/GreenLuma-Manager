@@ -20,7 +20,9 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
 - **Plugin Support** - Import, enable, disable, and remove community plugins from the Plugins menu
 - **Stealth Mode** - Configure GreenLuma's injection settings for discreet operation
 - **Install / Update GreenLuma** - Point the app at a GreenLuma zip file and it extracts and deploys the right files for Normal or Stealth mode, for a fresh install or an existing one
-- **GreenLuma Update Check** (optional) - Checks the GreenLuma forum thread for a newer release than what's installed
+- **GreenLuma Update Check** - Checks the GreenLuma forum thread for a newer release than what's installed, shown as
+  a status badge and a toast notification. Turns itself on or off automatically the first time it can tell whether
+  the forum is reachable, then stays as you set it in Settings
 - **Auto-Updates** - Keeps you up to date with the latest features and fixes
 - **Auto-Start** - Option to launch with Windows and replace Steam startup
 
@@ -71,7 +73,8 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
     - In Settings, Advanced tab, browse for a GreenLuma zip file
     - Pick Normal or Stealth mode and click "Install / Update"
     - Works for a fresh install or refreshing an existing one, using the GreenLuma Directory set on the General tab
-    - Turn on "Check GreenLuma Forum for Updates" in Settings to get notified when a newer release is posted
+    - "Check GreenLuma Forum for Updates" in Settings turns itself on or off automatically the first time it can
+      tell whether the forum is reachable, and can be changed anytime
 
 3. **Finding Games**
     - Type a game name or App ID into the search box

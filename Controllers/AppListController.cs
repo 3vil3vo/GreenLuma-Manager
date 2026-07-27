@@ -150,8 +150,7 @@ public class AppListController
             {
                 try
                 {
-                    var info = await DepotService.FetchAppPackageInfoAsync(id).ConfigureAwait(false);
-                    if (info == null) return;
+                    if (!packageInfos.TryGetValue(id, out var info) || info == null) return;
 
                     var game = new Game { AppId = id, Name = string.Empty, Type = "Game" };
                     await SearchService.PopulateGameDetailsAsync(game).ConfigureAwait(false);
@@ -166,12 +165,13 @@ public class AppListController
                         if (parentInfo.DlcDepots.TryGetValue(id, out var dlcDepots))
                             depotsToAssign = dlcDepots;
                     }
-                    else if (packageInfos.TryGetValue(id, out var selfInfo) && selfInfo != null)
+                    else if (info.Depots.Count > 0)
                     {
-                        if (selfInfo.Depots.Count > 0)
-                            depotsToAssign = selfInfo.Depots;
-                        else if (selfInfo.DlcDepots.TryGetValue(id, out var dlcDepots))
-                            depotsToAssign = dlcDepots;
+                        depotsToAssign = info.Depots;
+                    }
+                    else if (info.DlcDepots.TryGetValue(id, out var dlcDepots))
+                    {
+                        depotsToAssign = dlcDepots;
                     }
 
                     if (depotsToAssign != null)

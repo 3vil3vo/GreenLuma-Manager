@@ -112,7 +112,7 @@ public class ConfigService
             EnsureConfigDirectoryExists();
 
             var json = SerializeConfig(config);
-            File.WriteAllText(ConfigPath, json, Encoding.UTF8);
+            AtomicFile.WriteAllText(ConfigPath, json);
         }
         catch (Exception ex)
         {

@@ -176,6 +176,7 @@ public static partial class GreenLumaDeploymentService
 
     private static Dictionary<string, string> CollectAvailableFiles(string sourceDir)
     {
+        const string preferredFolder = "NormalMode";
         var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var filePath in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
@@ -190,8 +191,8 @@ public static partial class GreenLumaDeploymentService
             }
 
             var existingRelative = Path.GetRelativePath(sourceDir, existing);
-            if (relative.StartsWith("NormalMode", StringComparison.OrdinalIgnoreCase) &&
-                !existingRelative.StartsWith("NormalMode", StringComparison.OrdinalIgnoreCase))
+            if (relative.StartsWith(preferredFolder, StringComparison.OrdinalIgnoreCase) &&
+                !existingRelative.StartsWith(preferredFolder, StringComparison.OrdinalIgnoreCase))
                 files[fileName] = filePath;
         }
 

@@ -758,7 +758,7 @@
                                             Margin="0,4,60,0"
                                             FontSize="13"
                                             Foreground="{StaticResource TextTertiary}"
-                                            Text="Check the GreenLuma forum thread on startup for a newer release than what's installed. Opens a hidden browser instance to read the page."
+                                            Text="Check the GreenLuma forum thread on startup for a newer release than what's installed. Opens a hidden browser instance to read the page. The first time this can be determined, it turns itself on or off automatically based on whether the forum is reachable, then stays as you set it here."
                                             TextWrapping="Wrap" />
                                     </StackPanel>
                                 </StackPanel>

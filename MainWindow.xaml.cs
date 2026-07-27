@@ -1205,7 +1205,8 @@ public partial class MainWindow
 
     private static bool IsGreenLumaOutdated(string detectedVersion)
     {
-        return GreenLumaService.CompareVersions(detectedVersion, LatestGreenLumaVersion) < 0;
+        var latestVersion = GreenLumaUpdateService.LastKnownLatestVersion?.ToString() ?? LatestGreenLumaVersion;
+        return GreenLumaService.CompareVersions(detectedVersion, latestVersion) < 0;
     }
 
     private async void CheckForUpdates()
@@ -1228,16 +1229,19 @@ public partial class MainWindow
     {
         try
         {
-            if (_config is not { CheckGreenLumaUpdates: true }) return;
+            if (_config == null) return;
 
-            var versionInfo = await GreenLumaUpdateService.CheckForGreenLumaUpdatesAsync(_config).ConfigureAwait(false);
-            if (versionInfo is not { CheckSucceeded: true, UpdateAvailable: true }) return;
+            var versionInfo = await GreenLumaUpdateService.AutoDetectDefaultAsync(_config).ConfigureAwait(false);
+            if (versionInfo is not { CheckSucceeded: true }) return;
+
+            await Application.Current.Dispatcher.InvokeAsync(UpdateStatus);
+
+            if (!versionInfo.UpdateAvailable) return;
 
             var installed = versionInfo.InstalledVersion?.ToString() ?? "unknown";
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-                _notificationManager.ShowToast(
-                    $"GreenLuma {versionInfo.LatestSemanticVersion} is available on the forum (installed: {installed}).",
-                    false));
+            _notificationManager.ShowToast(
+                $"GreenLuma {versionInfo.LatestSemanticVersion} is available on the forum (installed: {installed}).",
+                false);
         }
         catch (Exception ex)
         {

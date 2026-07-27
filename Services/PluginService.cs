@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using GreenLuma_Manager.Models;
 using GreenLuma_Manager.Plugins;
+using GreenLuma_Manager.Utilities;
 
 namespace GreenLuma_Manager.Services;
 
@@ -67,7 +68,7 @@ public class PluginService
         try
         {
             var json = JsonSerializer.Serialize(_pluginInfos);
-            File.WriteAllText(PluginsConfigPath, json, Encoding.UTF8);
+            AtomicFile.WriteAllText(PluginsConfigPath, json);
         }
         catch (Exception ex)
         {
@@ -297,7 +298,7 @@ public class PluginService
         try
         {
             var json = JsonSerializer.Serialize(paths);
-            File.WriteAllText(PendingDeletesPath, json, Encoding.UTF8);
+            AtomicFile.WriteAllText(PendingDeletesPath, json);
         }
         catch (Exception ex)
         {

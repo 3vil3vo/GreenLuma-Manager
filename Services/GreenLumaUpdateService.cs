@@ -15,11 +15,59 @@ public static partial class GreenLumaUpdateService
     [GeneratedRegex(@"GreenLuma \d{4}\s+(\d+\.\d+\.\d+)")]
     private static partial Regex VersionTitleRegex();
 
+    public static Version? LastKnownLatestVersion { get; private set; }
+
     public static async Task<GreenLumaVersionInfo?> CheckForGreenLumaUpdatesAsync(Config config)
     {
         if (!config.CheckGreenLumaUpdates)
             return null;
 
+        return await RunCheckAsync(config).ConfigureAwait(false);
+    }
+
+    private const int MaxFailedAttemptsBeforeSettlingOff = 2;
+
+    public static async Task<GreenLumaVersionInfo?> AutoDetectDefaultAsync(Config config)
+    {
+        if (config.GreenLumaUpdateCheckAutoDetectDone)
+            return config.CheckGreenLumaUpdates ? await RunCheckAsync(config).ConfigureAwait(false) : null;
+
+        if (!await InternetConnectivityChecker.HasInternetConnectionAsync().ConfigureAwait(false))
+        {
+            Logger.Debug("GreenLumaUpdateService.AutoDetectDefault: no internet connection, will retry next launch");
+            return null;
+        }
+
+        var result = await RunCheckAsync(config).ConfigureAwait(false);
+
+        if (result is { CheckSucceeded: true })
+        {
+            config.CheckGreenLumaUpdates = true;
+            config.GreenLumaUpdateCheckAutoDetectDone = true;
+            config.GreenLumaUpdateCheckFailedAttempts = 0;
+        }
+        else
+        {
+            config.GreenLumaUpdateCheckFailedAttempts++;
+            if (config.GreenLumaUpdateCheckFailedAttempts >= MaxFailedAttemptsBeforeSettlingOff)
+            {
+                config.CheckGreenLumaUpdates = false;
+                config.GreenLumaUpdateCheckAutoDetectDone = true;
+            }
+        }
+
+        ConfigService.Save(config);
+
+        Logger.Info(
+            $"GreenLumaUpdateService.AutoDetectDefault: attempt result={result?.CheckSucceeded}, " +
+            $"failedAttempts={config.GreenLumaUpdateCheckFailedAttempts}, done={config.GreenLumaUpdateCheckAutoDetectDone}, " +
+            $"CheckGreenLumaUpdates={config.CheckGreenLumaUpdates}");
+
+        return result;
+    }
+
+    private static async Task<GreenLumaVersionInfo?> RunCheckAsync(Config config)
+    {
         try
         {
             var title = await FetchForumPageTitleAsync().ConfigureAwait(false);
@@ -30,8 +78,11 @@ public static partial class GreenLumaUpdateService
             if (!match.Success || !Version.TryParse(match.Groups[1].Value, out var latestVersion))
                 return CreateFailedResult($"Could not parse a version from the forum title: {title}");
 
+            LastKnownLatestVersion = latestVersion;
+
             var detectedVersion = GreenLumaService.DetectVersion(config.GreenLumaPath);
-            Version.TryParse(detectedVersion, out var installedVersion);
+            var effectiveVersion = GreenLumaService.ResolveVersion(config, detectedVersion);
+            Version.TryParse(effectiveVersion, out var installedVersion);
 
             return new GreenLumaVersionInfo
             {

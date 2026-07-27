@@ -33,6 +33,10 @@ public class Config
 
     [DataMember] public bool CheckGreenLumaUpdates { get; set; }
 
+    [DataMember] public bool GreenLumaUpdateCheckAutoDetectDone { get; set; }
+
+    [DataMember] public int GreenLumaUpdateCheckFailedAttempts { get; set; }
+
     [DataMember] public bool FirstRun { get; set; } = true;
 
     [DataMember] public string SteamApiKey { get; set; } = string.Empty;

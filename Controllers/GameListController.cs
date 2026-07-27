@@ -94,7 +94,7 @@ public class GameListController
             .Replace("'", "")
             .Replace("ʻ", "")
             .Replace("ʼ", "")
-            .Replace("'", "");
+            .Replace("’", "");
     }
 
     public void ClearGames()

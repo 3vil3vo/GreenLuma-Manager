@@ -420,6 +420,7 @@ public partial class SettingsDialog
         _config.StartSteamMinimized = ChkStartSteamMinimized.IsChecked.GetValueOrDefault();
         _config.DisableGreenLumaVersionNotice = ChkDisableGreenLumaVersionNotice.IsChecked.GetValueOrDefault();
         _config.CheckGreenLumaUpdates = ChkCheckGreenLumaUpdates.IsChecked.GetValueOrDefault();
+        _config.GreenLumaUpdateCheckAutoDetectDone = true;
         _config.DisableUpdateCheck = ChkDisableUpdateCheck.IsChecked.GetValueOrDefault();
         _config.AutoUpdate = ChkAutoUpdate.IsChecked.GetValueOrDefault();
         ConfigService.Save(_config);
