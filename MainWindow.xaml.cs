@@ -22,7 +22,7 @@ namespace GreenLuma_Manager;
 public partial class MainWindow
 {
     public const string Version = "RC2.19";
-    private const string LatestGreenLumaVersion = "1.8.1";
+    private const string LatestGreenLumaVersion = "1.8.2";
     private readonly AppListController _appListController;
     private readonly GameListController _gameListController;
     private readonly GreenLumaLauncher _launcher;

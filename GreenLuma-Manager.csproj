@@ -26,10 +26,11 @@
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions>
+        <WebView2NeverCopyLoaderDllToOutputDirectory>true</WebView2NeverCopyLoaderDllToOutputDirectory>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4078.44"/>
+        <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4078.44" ExcludeAssets="native" GeneratePathProperty="true"/>
         <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1"/>
         <PackageReference Include="SharpCompress" Version="1.0.0"/>
         <PackageReference Include="SteamKit2" Version="3.4.0"/>
@@ -42,6 +43,9 @@
     <ItemGroup>
         <EmbeddedResource Include="Data\steam_applist_legacy.json"/>
         <EmbeddedResource Include="Data\AppList.template.ini"/>
+        <EmbeddedResource Include="$(PkgMicrosoft_Web_WebView2)\runtimes\win-x64\native\WebView2Loader.dll">
+            <LogicalName>GreenLuma_Manager.Native.WebView2Loader.dll</LogicalName>
+        </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>

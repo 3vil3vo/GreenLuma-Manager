@@ -71,17 +71,18 @@ public class SearchService
 
     private const string LegacyResourceName = "GreenLuma_Manager.Data.steam_applist_legacy.json";
 
+    private const int StoreApiMaxPerCall = 20;
+
     private static readonly TimeSpan AppListFetchWait = TimeSpan.FromSeconds(4);
     private static string _steamApiKey = string.Empty;
     private static List<SteamApp>? _appListCache;
     private static readonly SemaphoreSlim AppListLock = new(1, 1);
+    private static readonly SemaphoreSlim LegacyAppListLock = new(1, 1);
     private static readonly ConcurrentDictionary<string, GameDetails> DetailsCache = new();
     private static DateTime _cacheExpiry = DateTime.MinValue;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
     private static volatile bool _isPrefetching;
     private static Task? _appListFetchTask;
-
-    private const int StoreApiMaxPerCall = 20;
     private static readonly TimeSpan StoreApiMinInterval = TimeSpan.FromMilliseconds(350);
     private static readonly TimeSpan StoreApiRateLimitBackoff = TimeSpan.FromSeconds(60);
     private static readonly SemaphoreSlim StoreApiThrottle = new(1, 1);
@@ -142,7 +143,7 @@ public class SearchService
     {
         if (_appListCache != null) return _appListCache;
 
-        await AppListLock.WaitAsync(ct).ConfigureAwait(false);
+        await LegacyAppListLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             if (_appListCache != null) return _appListCache;
@@ -158,7 +159,7 @@ public class SearchService
         }
         finally
         {
-            AppListLock.Release();
+            LegacyAppListLock.Release();
         }
     }
 

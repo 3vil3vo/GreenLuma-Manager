@@ -12,10 +12,12 @@ public static partial class GreenLumaUpdateService
     private const int PollIntervalMs = 1500;
     private const int FetchTimeoutMs = 30000;
 
-    [GeneratedRegex(@"GreenLuma \d{4}\s+(\d+\.\d+\.\d+)")]
-    private static partial Regex VersionTitleRegex();
+    private const int MaxFailedAttemptsBeforeSettlingOff = 2;
 
     public static Version? LastKnownLatestVersion { get; private set; }
+
+    [GeneratedRegex(@"GreenLuma \d{4}\s+(\d+\.\d+\.\d+)")]
+    private static partial Regex VersionTitleRegex();
 
     public static async Task<GreenLumaVersionInfo?> CheckForGreenLumaUpdatesAsync(Config config)
     {
@@ -24,8 +26,6 @@ public static partial class GreenLumaUpdateService
 
         return await RunCheckAsync(config).ConfigureAwait(false);
     }
-
-    private const int MaxFailedAttemptsBeforeSettlingOff = 2;
 
     public static async Task<GreenLumaVersionInfo?> AutoDetectDefaultAsync(Config config)
     {

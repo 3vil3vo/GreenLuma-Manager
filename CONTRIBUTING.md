@@ -39,8 +39,8 @@ Thank you for your interest in contributing to GreenLuma Manager!
     - `GreenLumaService.cs` - AppList generation, DLLInjector.ini updates, and launching GreenLuma
     - `GreenLumaVersionPromptService.cs` - The one-time prompt for a mislabeled GreenLuma version
     - `GreenLumaDeploymentService.cs` - Extracts a GreenLuma zip and deploys Normal or Stealth mode files
-    - `GreenLumaUpdateService.cs` - Checks the GreenLuma forum thread for a newer release, and auto-detects the
-      default for whether that check runs
+    - `GreenLumaUpdateService.cs` - Checks the GreenLuma forum thread for a newer release, and auto-detects the default
+      for whether that check runs
     - `InternetConnectivityChecker.cs` - Checks for a working internet connection before attempting the forum check
     - `WebView2Helper.cs` - Shared, isolated WebView2 environment for the forum update check
     - `DepotService.cs` and `SteamService.cs` - Resolving depot and DLC info through SteamKit2
@@ -80,8 +80,8 @@ Thank you for your interest in contributing to GreenLuma Manager!
 - Implement `INotifyPropertyChanged` for data-bound properties
 - Keep methods focused and single-purpose
 - Use meaningful variable and method names
-- Do not add comments that just restate what the code does. Only comment on something that is not obvious from
-  the code itself
+- Do not add comments that just restate what the code does. Only comment on something that is not obvious from the code
+  itself
 - Do not use em dashes in code, comments, or documentation
 - Match the existing ReSharper formatting style (see the rest of the codebase for examples)
 
@@ -112,8 +112,8 @@ Before submitting:
 - Test with both a fresh install and an existing config file
 - Check for memory leaks with long-running operations
 - Verify icon loading and search still work correctly
-- If you touch GreenLuma launching or AppList generation, test with both stealth mode on and off, and with a
-  GreenLuma version below 1.8.0 and one at 1.8.0 or above
+- If you touch GreenLuma launching or AppList generation, test with both stealth mode on and off, and with a GreenLuma
+  version below 1.8.0 and one at 1.8.0 or above
 - If you touch the GreenLuma zip deploy, test both a fresh install into an empty folder and updating an
   already-configured install, for both Normal and Stealth mode
 - If you touch anything using WebView2, verify the WebView2 Runtime is installed on the test machine first

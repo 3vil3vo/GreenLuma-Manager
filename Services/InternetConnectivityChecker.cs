@@ -2,10 +2,9 @@ namespace GreenLuma_Manager.Services;
 
 public static class InternetConnectivityChecker
 {
-    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(4);
-
     private const string NcsiUrl = "http://www.msftconnecttest.com/connecttest.txt";
     private const string NcsiExpectedBody = "Microsoft Connect Test";
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(4);
 
     private static readonly string[] FallbackProbeUrls =
     [

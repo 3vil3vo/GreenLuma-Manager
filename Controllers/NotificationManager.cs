@@ -20,6 +20,7 @@ public class NotificationManager
     private readonly TextBlock? _txtLoadingDots;
     private readonly TextBlock _txtStatus;
     private int _dotsCount;
+    private int _toastToken;
 
     public NotificationManager(
         UIElement toast,
@@ -73,6 +74,8 @@ public class NotificationManager
             ? GetResource("Success") ?? Brushes.Green
             : GetResource("Danger") ?? Brushes.Red;
 
+        var token = ++_toastToken;
+
         _toast.Visibility = Visibility.Visible;
         _toast.Opacity = 0.0;
 
@@ -93,6 +96,7 @@ public class NotificationManager
 
         storyboard.Completed += (_, _) =>
         {
+            if (token != _toastToken) return;
             _toast.Visibility = Visibility.Collapsed;
             _toast.Opacity = 1.0;
         };

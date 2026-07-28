@@ -374,6 +374,105 @@
                 </Setter>
             </Style>
 
+            <Style x:Key="ChillRadio" TargetType="{x:Type RadioButton}">
+                <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type RadioButton}">
+                            <Grid Background="Transparent">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border
+                                    x:Name="Ring"
+                                    Width="18"
+                                    Height="18"
+                                    VerticalAlignment="Center"
+                                    BorderBrush="{StaticResource TextTertiary}"
+                                    BorderThickness="2"
+                                    CornerRadius="9">
+                                    <Ellipse
+                                        x:Name="Dot"
+                                        Width="8"
+                                        Height="8"
+                                        Fill="{StaticResource TextPrimary}"
+                                        Opacity="0"
+                                        RenderTransformOrigin="0.5,0.5">
+                                        <Ellipse.RenderTransform>
+                                            <ScaleTransform ScaleX="0" ScaleY="0" />
+                                        </Ellipse.RenderTransform>
+                                    </Ellipse>
+                                </Border>
+                                <ContentPresenter
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Content="{TemplateBinding Content}" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                                    <Setter TargetName="Ring" Property="BorderBrush"
+                                            Value="{StaticResource TextPrimary}" />
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="Dot"
+                                                    Storyboard.TargetProperty="Opacity"
+                                                    To="1"
+                                                    Duration="0:0:0.15" />
+                                                <DoubleAnimation
+                                                    EasingFunction="{StaticResource ChillEase}"
+                                                    Storyboard.TargetName="Dot"
+                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                    To="1"
+                                                    Duration="0:0:0.25" />
+                                                <DoubleAnimation
+                                                    EasingFunction="{StaticResource ChillEase}"
+                                                    Storyboard.TargetName="Dot"
+                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                    To="1"
+                                                    Duration="0:0:0.25" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="Dot"
+                                                    Storyboard.TargetProperty="Opacity"
+                                                    To="0"
+                                                    Duration="0:0:0.15" />
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="Dot"
+                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                    To="0"
+                                                    Duration="0:0:0.15" />
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="Dot"
+                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                    To="0"
+                                                    Duration="0:0:0.15" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                                    <Setter TargetName="Ring" Property="BorderBrush"
+                                            Value="{StaticResource TextSecondary}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="FadeInPanel" TargetType="Grid">
                 <Style.Triggers>
                     <Trigger Property="Visibility" Value="Visible">
@@ -971,14 +1070,14 @@
                                             x:Name="RbDeployNormal"
                                             Margin="0,0,20,0"
                                             Content="Normal"
-                                            Foreground="{StaticResource TextSecondary}"
                                             GroupName="DeployMode"
-                                            IsChecked="True" />
+                                            IsChecked="True"
+                                            Style="{StaticResource ChillRadio}" />
                                         <RadioButton
                                             x:Name="RbDeployStealth"
                                             Content="Stealth"
-                                            Foreground="{StaticResource TextSecondary}"
-                                            GroupName="DeployMode" />
+                                            GroupName="DeployMode"
+                                            Style="{StaticResource ChillRadio}" />
                                     </StackPanel>
 
                                     <Grid>

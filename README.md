@@ -1,6 +1,7 @@
 # GreenLuma Manager
 
-A modern desktop app for managing your GreenLuma AppList. No more entering app IDs one by one - just search, click, and launch.
+A modern desktop app for managing your GreenLuma AppList. No more entering app IDs one by one - just search, click, and
+launch.
 
 ![Version](https://img.shields.io/github/v/release/3vil3vo/GreenLuma-Manager?label=version)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-green)
@@ -10,19 +11,20 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
 
 ## Features
 
-- **Smart Search** - Find any Steam game or DLC by name or App ID. Add a Steam API key in Settings for the fullest,
-  most up to date results
+- **Smart Search** - Find any Steam game or DLC by name or App ID. Add a Steam API key in Settings for the fullest, most
+  up to date results
 - **Profile Management** - Keep different game lists organized with multiple profiles
 - **Auto-Detection** - Automatically finds your Steam and GreenLuma folders
 - **One-Click Launch** - Generate your AppList and start GreenLuma without the hassle
-- **AppList.ini Support** - Uses the newer AppList.ini format on GreenLuma 1.8.0 and up, and falls back to the
-  classic per-file format on older versions
+- **AppList.ini Support** - Uses the newer AppList.ini format on GreenLuma 1.8.0 and up, and falls back to the classic
+  per-file format on older versions
 - **Plugin Support** - Import, enable, disable, and remove community plugins from the Plugins menu
 - **Stealth Mode** - Configure GreenLuma's injection settings for discreet operation
-- **Install / Update GreenLuma** - Point the app at a GreenLuma zip file and it extracts and deploys the right files for Normal or Stealth mode, for a fresh install or an existing one
-- **GreenLuma Update Check** - Checks the GreenLuma forum thread for a newer release than what's installed, shown as
-  a status badge and a toast notification. Turns itself on or off automatically the first time it can tell whether
-  the forum is reachable, then stays as you set it in Settings
+- **Install / Update GreenLuma** - Point the app at a GreenLuma zip file and it extracts and deploys the right files for
+  Normal or Stealth mode, for a fresh install or an existing one
+- **GreenLuma Update Check** - Checks the GreenLuma forum thread for a newer release than what's installed, shown as a
+  status badge and a toast notification. Turns itself on or off automatically the first time it can tell whether the
+  forum is reachable, then stays as you set it in Settings
 - **Auto-Updates** - Keeps you up to date with the latest features and fixes
 - **Auto-Start** - Option to launch with Windows and replace Steam startup
 
@@ -66,20 +68,20 @@ A modern desktop app for managing your GreenLuma AppList. No more entering app I
     - On first launch, the app auto-detects Steam and GreenLuma paths
     - Older config files are migrated automatically
     - Adjust settings in Settings (⚙️) if needed
-    - If GreenLuma reports version 1.7.9, you will see a one-time prompt asking whether it should be treated as
-      1.7.9 or 1.8.0. This only happens once, and can be changed later in Settings if needed
+    - If GreenLuma reports version 1.7.9, you will see a one-time prompt asking whether it should be treated as 1.7.9 or
+      1.8.0. This only happens once, and can be changed later in Settings if needed
 
 2. **Installing or Updating GreenLuma** (optional)
     - In Settings, Advanced tab, browse for a GreenLuma zip file
     - Pick Normal or Stealth mode and click "Install / Update"
     - Works for a fresh install or refreshing an existing one, using the GreenLuma Directory set on the General tab
-    - "Check GreenLuma Forum for Updates" in Settings turns itself on or off automatically the first time it can
-      tell whether the forum is reachable, and can be changed anytime
+    - "Check GreenLuma Forum for Updates" in Settings turns itself on or off automatically the first time it can tell
+      whether the forum is reachable, and can be changed anytime
 
 3. **Finding Games**
     - Type a game name or App ID into the search box
-    - Add a Steam API key in Settings to get the full, current Steam catalog. Without a key, search only uses the
-      list bundled with the app
+    - Add a Steam API key in Settings to get the full, current Steam catalog. Without a key, search only uses the list
+      bundled with the app
     - Click the + button to add games to your current profile
 
 4. **Managing Profiles**
@@ -119,8 +121,7 @@ GNU Affero General Public License v3.0 - See [LICENSE](LICENSE) for details.
 
 ## Disclaimer
 
-This is an educational project. Use it responsibly and at your own risk. We are not responsible if something
-goes wrong.
+This is an educational project. Use it responsibly and at your own risk. We are not responsible if something goes wrong.
 
 ## Author
 
