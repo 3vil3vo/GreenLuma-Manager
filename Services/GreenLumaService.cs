@@ -11,7 +11,7 @@ namespace GreenLuma_Manager.Services;
 public partial class GreenLumaService
 {
     private const int ProcessKillTimeoutMs = 5000;
-    public const int AppListLimit = 149;
+    public const int AppListLimit = 151;
     public const string IniAppListMinVersion = "1.8.0";
     public const string LegacyVersion = "1.7.9";
     private const string IniTemplateResourceName = "GreenLuma_Manager.Data.AppList.template.ini";
