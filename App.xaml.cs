@@ -7,6 +7,8 @@ namespace GreenLuma_Manager;
 
 public partial class App
 {
+    private Config? _config;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -16,6 +18,7 @@ public partial class App
             PluginService.OnApplicationStartup();
 
             var config = ConfigService.Load();
+            _config = config;
 
             if (e.Args.Length > 0)
                 foreach (var arg in e.Args)
@@ -24,7 +27,9 @@ public partial class App
                         try
                         {
                             GreenLumaVersionPromptService.EnsureConfirmed(config);
-                            GreenLumaService.LaunchGreenLumaAsync(config).GetAwaiter().GetResult();
+                            var launched = GreenLumaService.LaunchGreenLumaAsync(config).GetAwaiter().GetResult();
+                            if (launched && config.LaunchMode == GreenLumaLaunchMode.FullStealth)
+                                GreenLumaService.MonitorSteamAfterLaunchAsync(config).GetAwaiter().GetResult();
                         }
                         catch (Exception ex)
                         {
@@ -56,6 +61,8 @@ public partial class App
     {
         try
         {
+            if (_config?.LaunchMode == GreenLumaLaunchMode.FullStealth)
+                GreenLumaDeploymentService.RemoveFullStealthDeployment(_config.SteamPath);
             SteamService.Instance.Dispose();
             PluginService.OnApplicationShutdown();
         }

@@ -2,6 +2,19 @@
 
 namespace GreenLuma_Manager.Models;
 
+public enum GreenLumaLaunchMode
+{
+    Normal,
+    InjectorStealth,
+    FullStealth
+}
+
+public enum FullStealthVariant
+{
+    Standard,
+    SteamFamilies
+}
+
 [DataContract]
 public class Config
 {
@@ -10,6 +23,10 @@ public class Config
     [DataMember] public string GreenLumaPath { get; set; } = string.Empty;
 
     [DataMember] public bool NoHook { get; set; }
+
+    [DataMember] public GreenLumaLaunchMode LaunchMode { get; set; }
+
+    [DataMember] public FullStealthVariant FullStealthVariant { get; set; }
 
     [DataMember] public bool DisableUpdateCheck { get; set; }
 

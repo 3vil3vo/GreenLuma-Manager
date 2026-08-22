@@ -9,8 +9,8 @@ public class GreenLumaLauncher
     public bool ValidatePaths(Config? config)
     {
         return config != null
-               && !string.IsNullOrWhiteSpace(config.GreenLumaPath)
-               && Directory.Exists(config.GreenLumaPath);
+               && !string.IsNullOrWhiteSpace(GreenLumaService.GetRuntimeRootPath(config))
+               && Directory.Exists(GreenLumaService.GetRuntimeRootPath(config));
     }
 
     public bool IsAppListGenerated(Config config)

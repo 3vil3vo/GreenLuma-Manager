@@ -77,7 +77,7 @@ public partial class MainWindow
         _config = ConfigService.Load();
         if (_config != null)
         {
-            TglStealthMode.IsChecked = _config.NoHook;
+            TglStealthMode.IsChecked = _config.LaunchMode != GreenLumaLaunchMode.Normal;
             SanitizeApiKey(_config);
             SearchService.SetApiKey(_config.SteamApiKey);
             if (_config.WindowWidth >= MinWidth && _config.WindowHeight >= MinHeight)
@@ -1121,7 +1121,13 @@ public partial class MainWindow
         if (_config == null || sender is not ToggleButton toggleButton)
             return;
 
-        _config.NoHook = toggleButton.IsChecked.GetValueOrDefault();
+        if (_config.LaunchMode == GreenLumaLaunchMode.FullStealth)
+            return;
+
+        _config.LaunchMode = toggleButton.IsChecked.GetValueOrDefault()
+            ? GreenLumaLaunchMode.InjectorStealth
+            : GreenLumaLaunchMode.Normal;
+        _config.NoHook = _config.LaunchMode != GreenLumaLaunchMode.Normal;
         ConfigService.Save(_config);
         UpdateStatus();
     }
@@ -1138,6 +1144,27 @@ public partial class MainWindow
 
         var steamPath = _config.SteamPath.Trim();
         var greenLumaPath = _config.GreenLumaPath.Trim();
+
+        if (_config.LaunchMode == GreenLumaLaunchMode.FullStealth)
+        {
+            TglStealthMode.IsChecked = true;
+            TglStealthMode.IsEnabled = false;
+            var ready = !string.IsNullOrWhiteSpace(steamPath) &&
+                        File.Exists(Path.Combine(steamPath, "Steam.exe")) &&
+                        !string.IsNullOrWhiteSpace(greenLumaPath) &&
+                        File.Exists(Path.Combine(greenLumaPath,
+                            _config.FullStealthVariant == FullStealthVariant.SteamFamilies
+                                ? "user32SF.dll"
+                                : "user32.dll")) &&
+                        Directory.Exists(Path.Combine(greenLumaPath, "AppList"));
+            _notificationManager.SetStatusIndicator(
+                ready ? Resources["Success"] as Brush ?? Brushes.Green : Resources["Danger"] as Brush ?? Brushes.Red,
+                ready ? "Ready  •  Full Stealth Mode" : "Full Stealth Not Configured");
+            return;
+        }
+
+        TglStealthMode.IsChecked = _config.LaunchMode == GreenLumaLaunchMode.InjectorStealth;
+        TglStealthMode.IsEnabled = true;
 
         if (string.IsNullOrWhiteSpace(steamPath) || string.IsNullOrWhiteSpace(greenLumaPath))
         {

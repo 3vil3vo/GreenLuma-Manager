@@ -29,13 +29,26 @@ public class ConfigService
             var migratedConfig = TryMigrateFromOldVersion(configJson);
             if (migratedConfig != null) return migratedConfig;
 
-            return DeserializeConfig(configJson) ?? new Config();
+            var config = DeserializeConfig(configJson) ?? new Config();
+            MigrateLaunchMode(config, configJson);
+            return config;
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "ConfigService.Load");
             return new Config();
         }
+    }
+
+    private static void MigrateLaunchMode(Config config, string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty(nameof(Config.LaunchMode), out _))
+            config.LaunchMode = config.NoHook
+                ? GreenLumaLaunchMode.InjectorStealth
+                : GreenLumaLaunchMode.Normal;
+
+        config.NoHook = config.LaunchMode != GreenLumaLaunchMode.Normal;
     }
 
     private static void EnsureConfigDirectoryExists()
@@ -91,6 +104,10 @@ public class ConfigService
                     PrefetchAppList = jsonData["prefetch_app_list"]?.ToObject<bool>() ?? false,
                     FirstRun = false
                 };
+
+                config.LaunchMode = config.NoHook
+                    ? GreenLumaLaunchMode.InjectorStealth
+                    : GreenLumaLaunchMode.Normal;
 
                 SerializeConfig(config);
                 return config;

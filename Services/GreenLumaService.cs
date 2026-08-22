@@ -164,10 +164,11 @@ public partial class GreenLumaService
 
     public static bool IsAppListGenerated(Config config)
     {
-        if (string.IsNullOrWhiteSpace(config.GreenLumaPath))
+        var rootPath = GetRuntimeRootPath(config);
+        if (string.IsNullOrWhiteSpace(rootPath))
             return false;
 
-        var appListPath = Path.Combine(config.GreenLumaPath, "AppList");
+        var appListPath = Path.Combine(rootPath, "AppList");
 
         return IsAppListGenerated(appListPath);
     }
@@ -257,12 +258,12 @@ public partial class GreenLumaService
 
     public static async Task<int> GenerateAppListAsync(Profile? profile, Config? config)
     {
-        if (profile == null || config == null || string.IsNullOrWhiteSpace(config.GreenLumaPath))
+        if (profile == null || config == null || string.IsNullOrWhiteSpace(GetRuntimeRootPath(config)))
             return -1;
 
         try
         {
-            var appListPath = Path.Combine(config.GreenLumaPath, "AppList");
+            var appListPath = Path.Combine(GetRuntimeRootPath(config), "AppList");
             Directory.CreateDirectory(appListPath);
 
             var allAppIds = new List<string>();
@@ -280,7 +281,8 @@ public partial class GreenLumaService
             var totalCount = allAppIds.Count;
             var limitedAppIds = allAppIds.Take(AppListLimit).ToList();
 
-            if (SupportsIniAppList(ResolveVersion(config, DetectVersion(config.GreenLumaPath))))
+            if (config.LaunchMode == GreenLumaLaunchMode.FullStealth ||
+                SupportsIniAppList(ResolveVersion(config, DetectVersion(config.GreenLumaPath))))
             {
                 if (!await GenerateIniAppListAsync(appListPath, limitedAppIds).ConfigureAwait(false))
                     return -1;
@@ -386,7 +388,15 @@ public partial class GreenLumaService
 
                 KillSteam(config);
 
-                return LaunchInjector(config);
+                if (config.LaunchMode != GreenLumaLaunchMode.FullStealth)
+                    return LaunchInjector(config);
+
+                if (!GreenLumaDeploymentService.StageFullStealthForLaunch(config))
+                    return false;
+
+                if (LaunchSteam(config)) return true;
+                GreenLumaDeploymentService.RemoveFullStealthDeployment(config.SteamPath);
+                return false;
             }
             catch (Exception ex)
             {
@@ -399,14 +409,42 @@ public partial class GreenLumaService
     private static bool ValidatePaths(Config config)
     {
         if (string.IsNullOrWhiteSpace(config.SteamPath) ||
-            string.IsNullOrWhiteSpace(config.GreenLumaPath))
+            (config.LaunchMode != GreenLumaLaunchMode.FullStealth &&
+             string.IsNullOrWhiteSpace(config.GreenLumaPath)))
             return false;
 
         var steamExePath = Path.Combine(config.SteamPath, "Steam.exe");
-        var injectorPath = Path.Combine(config.GreenLumaPath, "DLLInjector.exe");
+        if (!File.Exists(steamExePath)) return false;
 
-        return File.Exists(steamExePath) && File.Exists(injectorPath);
+        if (config.LaunchMode == GreenLumaLaunchMode.FullStealth)
+        {
+            var dllName = config.FullStealthVariant == FullStealthVariant.SteamFamilies
+                ? "user32SF.dll"
+                : "user32.dll";
+            return !string.IsNullOrWhiteSpace(config.GreenLumaPath) &&
+                   File.Exists(Path.Combine(config.GreenLumaPath, dllName)) &&
+                   Directory.Exists(Path.Combine(config.GreenLumaPath, "AppList"));
+        }
+
+        return File.Exists(Path.Combine(config.GreenLumaPath, "DLLInjector.exe"));
     }
+
+    private static bool LaunchSteam(Config config)
+    {
+        var steamExePath = Path.Combine(config.SteamPath, "Steam.exe");
+        if (!File.Exists(steamExePath)) return false;
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = steamExePath,
+            Arguments = config.StartSteamMinimized ? "-silent" : string.Empty,
+            WorkingDirectory = config.SteamPath,
+            UseShellExecute = true
+        });
+        return true;
+    }
+
+    public static string GetRuntimeRootPath(Config config) => config.GreenLumaPath;
 
     private static bool LaunchInjector(Config config)
     {
@@ -761,9 +799,12 @@ public partial class GreenLumaService
     {
         var issues = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(config.GreenLumaPath) || !Directory.Exists(config.GreenLumaPath))
+        var runtimeRoot = GetRuntimeRootPath(config);
+        if (string.IsNullOrWhiteSpace(runtimeRoot) || !Directory.Exists(runtimeRoot))
         {
-            issues.Add("GreenLuma path does not exist.");
+            issues.Add(config.LaunchMode == GreenLumaLaunchMode.FullStealth
+                ? "Steam path does not exist."
+                : "GreenLuma path does not exist.");
             return issues;
         }
 
@@ -774,15 +815,27 @@ public partial class GreenLumaService
         }
 
         var injectorPath = Path.Combine(config.GreenLumaPath, "DLLInjector.exe");
-        if (!File.Exists(injectorPath))
+        if (config.LaunchMode == GreenLumaLaunchMode.FullStealth)
+        {
+            var dllName = config.FullStealthVariant == FullStealthVariant.SteamFamilies
+                ? "user32SF.dll"
+                : "user32.dll";
+            if (!File.Exists(Path.Combine(config.GreenLumaPath, dllName)))
+                issues.Add($"Full Stealth source file {dllName} is missing.");
+            if (!Directory.Exists(Path.Combine(config.GreenLumaPath, "AppList")))
+                issues.Add("Full Stealth source AppList is missing.");
+        }
+        else if (!File.Exists(injectorPath))
             issues.Add("DLLInjector.exe is missing. It was likely deleted by antivirus.");
 
         var iniPath = Path.Combine(config.GreenLumaPath, "DLLInjector.ini");
-        if (!File.Exists(iniPath))
+        if (config.LaunchMode == GreenLumaLaunchMode.FullStealth)
+            iniPath = string.Empty;
+        if (config.LaunchMode != GreenLumaLaunchMode.FullStealth && !File.Exists(iniPath))
         {
             issues.Add("DLLInjector.ini is missing.");
         }
-        else
+        else if (config.LaunchMode != GreenLumaLaunchMode.FullStealth)
         {
             var dllPath = GetDllPathFromIni(iniPath, config);
             if (dllPath != null)
@@ -842,7 +895,7 @@ public partial class GreenLumaService
         {
             try
             {
-                var launchTime = DateTime.Now;
+                var launchTime = DateTime.Now.AddSeconds(-5);
 
                 Process? steamProcess = null;
                 var waitMs = 0;
@@ -865,6 +918,8 @@ public partial class GreenLumaService
 
                 if (steamProcess == null)
                 {
+                    if (config.LaunchMode == GreenLumaLaunchMode.FullStealth)
+                        return "Steam did not start in Full Stealth Mode.";
                     var injectorCrash = GetCrashFromEventLog("DLLInjector", launchTime);
                     if (injectorCrash != null)
                         return $"DLLInjector.exe crashed: {injectorCrash}";
@@ -898,6 +953,17 @@ public partial class GreenLumaService
                             steamProcess.Dispose();
 
                             var crashInfo = GetCrashFromEventLog("steam", launchTime);
+                            if (config.LaunchMode == GreenLumaLaunchMode.FullStealth && crashInfo == null)
+                            {
+                                var replacement = WaitForSteamReplacement(10000);
+                                if (replacement != null)
+                                {
+                                    steamProcess = replacement;
+                                    continue;
+                                }
+
+                                return null;
+                            }
                             var sb = new StringBuilder();
                             sb.Append($"Steam exited prematurely (exit code: {exitCode}).");
 
@@ -916,6 +982,8 @@ public partial class GreenLumaService
                     {
                         steamProcess.Dispose();
                         var crashInfo = GetCrashFromEventLog("steam", launchTime);
+                        if (config.LaunchMode == GreenLumaLaunchMode.FullStealth && crashInfo == null)
+                            return null;
                         return crashInfo != null
                             ? $"Steam crashed.\n\nCrash details from Event Log:\n{crashInfo}"
                             : "Steam process disappeared unexpectedly.";
@@ -930,7 +998,28 @@ public partial class GreenLumaService
                 Logger.Error(ex, "GreenLumaService.MonitorSteam");
                 return $"Monitoring error: {ex.Message}";
             }
+            finally
+            {
+                if (config.LaunchMode == GreenLumaLaunchMode.FullStealth)
+                    GreenLumaDeploymentService.RemoveFullStealthDeployment(config.SteamPath);
+            }
         });
+    }
+
+    private static Process? WaitForSteamReplacement(int timeoutMs)
+    {
+        const int pollMs = 500;
+        for (var elapsed = 0; elapsed < timeoutMs; elapsed += pollMs)
+        {
+            Thread.Sleep(pollMs);
+            var processes = Process.GetProcessesByName("steam");
+            if (processes.Length == 0) continue;
+            var process = processes[0];
+            for (var i = 1; i < processes.Length; i++) processes[i].Dispose();
+            return process;
+        }
+
+        return null;
     }
 
     private static string? GetCrashFromEventLog(string processName, DateTime since)

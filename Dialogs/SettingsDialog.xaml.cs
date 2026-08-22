@@ -43,9 +43,11 @@ public partial class SettingsDialog
 
     private void LoadDeployMode()
     {
-        var (isValid, isStealthOnly, _) = GreenLumaService.ValidateInstallation(_config.GreenLumaPath);
-        RbDeployStealth.IsChecked = isValid && isStealthOnly;
-        RbDeployNormal.IsChecked = !(isValid && isStealthOnly);
+        RbDeployNormal.IsChecked = _config.LaunchMode == GreenLumaLaunchMode.Normal;
+        RbDeployStealth.IsChecked = _config.LaunchMode == GreenLumaLaunchMode.InjectorStealth;
+        RbDeployFullStealth.IsChecked = _config.LaunchMode == GreenLumaLaunchMode.FullStealth;
+        ChkFullStealthSteamFamilies.IsChecked =
+            _config.FullStealthVariant == FullStealthVariant.SteamFamilies;
     }
 
     private void UpdateGreenLumaVersionOverrideText()
@@ -195,17 +197,25 @@ public partial class SettingsDialog
     private async void DeployGreenLuma_Click(object sender, RoutedEventArgs e)
     {
         var zipPath = TxtGreenLumaZipPath.Text;
+        var mode = RbDeployFullStealth.IsChecked.GetValueOrDefault()
+            ? GreenLumaLaunchMode.FullStealth
+            : RbDeployStealth.IsChecked.GetValueOrDefault()
+                ? GreenLumaLaunchMode.InjectorStealth
+                : GreenLumaLaunchMode.Normal;
         var destinationPath = NormalizePath(TxtGreenLumaPath.Text);
 
         if (string.IsNullOrWhiteSpace(destinationPath))
         {
             CustomMessageBox.Show(
-                "Set the GreenLuma Directory on the General tab first.", "GreenLuma Directory Not Set",
+                "Set the separate GreenLuma Directory on the General tab first.",
+                "Deployment Directory Not Set",
                 icon: MessageBoxImage.Exclamation);
             return;
         }
 
-        var stealthMode = RbDeployStealth.IsChecked.GetValueOrDefault();
+        var variant = ChkFullStealthSteamFamilies.IsChecked.GetValueOrDefault()
+            ? FullStealthVariant.SteamFamilies
+            : FullStealthVariant.Standard;
 
         BtnDeployGreenLuma.IsEnabled = false;
         TxtDeployStatus.Text = "Starting...";
@@ -213,7 +223,7 @@ public partial class SettingsDialog
         try
         {
             var result = await GreenLumaDeploymentService.DeployAsync(
-                zipPath, destinationPath, stealthMode,
+                zipPath, destinationPath, mode, variant,
                 status => Dispatcher.Invoke(() => TxtDeployStatus.Text = status));
 
             if (!result.Success)
@@ -226,7 +236,9 @@ public partial class SettingsDialog
             }
 
             _config.GreenLumaPath = destinationPath;
-            _config.NoHook = stealthMode;
+            _config.LaunchMode = mode;
+            _config.FullStealthVariant = variant;
+            _config.NoHook = mode != GreenLumaLaunchMode.Normal;
             ConfigService.Save(_config);
 
             TxtDeployStatus.Text = $"Deployed {result.DeployedFiles.Count} item(s).";
@@ -391,12 +403,58 @@ public partial class SettingsDialog
         return true;
     }
 
+    private static bool ValidateFullStealthPaths(
+        string steamPath, string greenLumaPath, FullStealthVariant variant)
+    {
+        if (string.IsNullOrWhiteSpace(steamPath) || !Directory.Exists(steamPath) ||
+            !File.Exists(Path.Combine(steamPath, "Steam.exe")))
+        {
+            CustomMessageBox.Show("A valid Steam directory is required for Full Stealth Mode.", "Validation",
+                icon: MessageBoxImage.Exclamation);
+            return false;
+        }
+
+        if (string.Equals(Path.GetFullPath(steamPath), Path.GetFullPath(greenLumaPath),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            CustomMessageBox.Show(
+                "Full Stealth source files must be stored outside the Steam directory.",
+                "Validation", icon: MessageBoxImage.Exclamation);
+            return false;
+        }
+
+        var dllName = variant == FullStealthVariant.SteamFamilies ? "user32SF.dll" : "user32.dll";
+        if (!File.Exists(Path.Combine(greenLumaPath, dllName)) ||
+            !Directory.Exists(Path.Combine(greenLumaPath, "AppList")))
+        {
+            CustomMessageBox.Show(
+                $"Full Stealth source is incomplete. Missing {dllName} or AppList. Use Install / Update first.",
+                "Validation", icon: MessageBoxImage.Exclamation);
+            return false;
+        }
+
+        return true;
+    }
+
     private void Ok_Click(object sender, RoutedEventArgs e)
     {
         var steamPath = NormalizePath(TxtSteamPath.Text);
         var greenLumaPath = NormalizePath(TxtGreenLumaPath.Text);
 
-        if (!ValidatePaths(steamPath, greenLumaPath)) return;
+        var selectedMode = RbDeployFullStealth.IsChecked.GetValueOrDefault()
+            ? GreenLumaLaunchMode.FullStealth
+            : RbDeployStealth.IsChecked.GetValueOrDefault()
+                ? GreenLumaLaunchMode.InjectorStealth
+                : GreenLumaLaunchMode.Normal;
+
+        if (selectedMode == GreenLumaLaunchMode.FullStealth)
+        {
+            var variant = ChkFullStealthSteamFamilies.IsChecked.GetValueOrDefault()
+                ? FullStealthVariant.SteamFamilies
+                : FullStealthVariant.Standard;
+            if (!ValidateFullStealthPaths(steamPath, greenLumaPath, variant)) return;
+        }
+        else if (!ValidatePaths(steamPath, greenLumaPath)) return;
 
         var (_, isStealthOnly, _) = GreenLumaService.ValidateInstallation(greenLumaPath);
         if (isStealthOnly)
@@ -414,6 +472,14 @@ public partial class SettingsDialog
 
         _config.SteamPath = steamPath;
         _config.GreenLumaPath = greenLumaPath;
+        if (_config.LaunchMode == GreenLumaLaunchMode.FullStealth &&
+            selectedMode != GreenLumaLaunchMode.FullStealth)
+            GreenLumaDeploymentService.RemoveFullStealthDeployment(steamPath);
+        _config.LaunchMode = selectedMode;
+        _config.FullStealthVariant = ChkFullStealthSteamFamilies.IsChecked.GetValueOrDefault()
+            ? FullStealthVariant.SteamFamilies
+            : FullStealthVariant.Standard;
+        _config.NoHook = selectedMode != GreenLumaLaunchMode.Normal;
         _config.SteamApiKey = TxtSteamApiKey.Text.Trim();
         _config.ReplaceSteamAutostart = ChkReplaceSteamAutostart.IsChecked.GetValueOrDefault();
         _config.PrefetchAppList = ChkPrefetchAppList.IsChecked.GetValueOrDefault();

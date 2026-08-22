@@ -47,7 +47,7 @@ public class AppListController
 
         result.FoundAppList = true;
         result.FoundInSteamFolder = steamHasAppList;
-        result.HasSteamWarning = steamHasAppList;
+        result.HasSteamWarning = steamHasAppList && config.LaunchMode != GreenLumaLaunchMode.FullStealth;
 
         var appListPath = steamHasAppList ? steamAppListPath! : greenLumaAppListPath!;
         result.AppIds = await ReadAppIdsAsync(appListPath).ConfigureAwait(false);
@@ -264,7 +264,7 @@ public class AppListController
     public bool ValidatePathsForGeneration(Config? config)
     {
         return config != null &&
-               !string.IsNullOrWhiteSpace(config.GreenLumaPath) &&
+               !string.IsNullOrWhiteSpace(GreenLumaService.GetRuntimeRootPath(config)) &&
                _launcher.ValidatePaths(config);
     }
 }

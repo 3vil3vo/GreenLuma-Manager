@@ -2361,12 +2361,12 @@
                                         FontSize="15"
                                         FontWeight="SemiBold"
                                         Foreground="{StaticResource Text}"
-                                        Text="Stealth Mode" />
+                                        Text="Injector Stealth Mode" />
                                     <TextBlock
                                         Margin="0,3,0,0"
                                         FontSize="12"
                                         Foreground="{StaticResource TextSecond}"
-                                        Text="Hide injection process" />
+                                        Text="Use stealth injector settings (Full Stealth is configured in Settings)" />
                                 </StackPanel>
 
                                 <ToggleButton

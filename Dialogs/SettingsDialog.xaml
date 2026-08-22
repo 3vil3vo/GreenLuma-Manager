@@ -1045,7 +1045,7 @@
                                         Foreground="{StaticResource TextPrimary}"
                                         Text="Install / Update GreenLuma" />
                                     <TextBlock Style="{StaticResource DescriptionTxt}"
-                                               Text="Extract a GreenLuma zip file and deploy it to the GreenLuma Directory set on the General tab. Works for a fresh install or updating an existing one." />
+                                               Text="Extract a GreenLuma zip file to the separate GreenLuma Directory. Full Stealth files are copied to Steam only while Steam is starting, then removed." />
 
                                     <Grid Margin="0,12,0,12">
                                         <Grid.ColumnDefinitions>
@@ -1075,10 +1075,22 @@
                                             Style="{StaticResource ChillRadio}" />
                                         <RadioButton
                                             x:Name="RbDeployStealth"
+                                            Margin="0,0,20,0"
                                             Content="Stealth"
                                             GroupName="DeployMode"
                                             Style="{StaticResource ChillRadio}" />
+                                        <RadioButton
+                                            x:Name="RbDeployFullStealth"
+                                            Content="Full Stealth"
+                                            GroupName="DeployMode"
+                                            Style="{StaticResource ChillRadio}" />
                                     </StackPanel>
+
+                                    <CheckBox
+                                        x:Name="ChkFullStealthSteamFamilies"
+                                        Margin="0,0,0,12"
+                                        Content="Use user32SF for Steam Families"
+                                        Style="{StaticResource ChillSwitch}" />
 
                                     <Grid>
                                         <Grid.ColumnDefinitions>
