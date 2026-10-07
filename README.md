@@ -127,6 +127,17 @@ This is an educational project. Use it responsibly and at your own risk. We are 
 
 Built with ☕ by [3vil3vo](https://github.com/3vil3vo)
 
+## Wall of Shame
+
+Major dishonor goes to [FroggMaster](https://github.com/FroggMaster), open source's finest example of pure disrespect and shameless code theft.
+
+Here is a timeline of how to completely fail at respecting open-source developers and licenses:
+1. **The initial theft**: Forked this repository, stripped my name from the credits, and passed off the project as his own.
+2. **The DMCA response**: After getting hit with a rightful DMCA takedown on his original stolen repository (github.com/FroggMaster/GreenLuma-Manager), instead of owning up to it, he threw a childish tantrum and pushed a commit called: "Don't get your panties in a twist."
+3. **The immediate ban evasion**: Immediately re-uploaded a fresh recreation (github.com/FroggMaster/GL-Manager) and went a step further by stripping out the license completely.
+
+If you value open source, respect project creators, or just appreciate basic human decency, do not support or use anything from this individual.
+
 ## Need Help?
 
 Ran into an issue or have an idea? [Open an issue](../../issues) and let's fix it!
